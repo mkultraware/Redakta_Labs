@@ -65,6 +65,8 @@ export const metadata: Metadata = {
   },
 };
 
+import CookieBanner from "@/components/CookieBanner";
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -120,6 +122,7 @@ export default function RootLayout({
           />
         </noscript>
         {children}
+        <CookieBanner />
       </body>
     </html>
   );
