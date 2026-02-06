@@ -1,36 +1,106 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Redakta Labs by Sekura
 
-## Getting Started
+Passiv OSINT-analys av domäners attackyta. Byggd med Next.js 14, Tailwind CSS och Netlify Functions.
 
-First, run the development server:
+## 🔒 Säkerhet & Integritet
+
+- **Ingen data lagras** – Alla analyser körs i realtid utan caching
+- **Cloudflare Turnstile** – Skyddar mot automatiserade anrop
+- **Passivt endast** – Endast DNS-uppslag, ingen aktiv scanning
+
+## 🚀 Snabbstart
 
 ```bash
+# Installera beroenden
+npm install
+
+# Starta utvecklingsserver (Turnstile inaktiverat utan env vars)
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+
+# Bygg för produktion
+npm run build
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## 🛠️ Stack
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+- **Frontend**: Next.js 14 (App Router), TypeScript, Tailwind CSS
+- **Backend**: Netlify Functions (stateless)
+- **Anti-abuse**: Cloudflare Turnstile
+- **Hosting**: Netlify
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## 📋 Funktioner
 
-## Learn More
+### Attack Surface Quickcheck
+- **E-postspoofing-skydd**: Kontrollerar SPF/DMARC (visar aldrig raw-strängar)
+- **Svartlistestatus**: DNSBL-kontroll mot kända listor
+- **Typosquat-radar**: Genererar ≤15 lookalikes, visar upp till 3 resolvade
+- **DNS-översikt**: Presence-only för MX, SPF, DMARC, NS, A/AAAA
 
-To learn more about Next.js, take a look at the following resources:
+### API
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+```bash
+POST /.netlify/functions/quickcheck
+Content-Type: application/json
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+{
+  "domain": "exempel.se",
+  "turnstileToken": "cf-turnstile-token-here"
+}
+```
 
-## Deploy on Vercel
+## 🔧 Miljövariabler
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+| Variabel | Beskrivning |
+|----------|-------------|
+| `NEXT_PUBLIC_TURNSTILE_SITE_KEY` | Cloudflare Turnstile site key (publik) |
+| `TURNSTILE_SECRET_KEY` | Cloudflare Turnstile secret key (backend) |
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+### Lokal utveckling
+
+Skapa `.env.local`:
+
+```env
+NEXT_PUBLIC_TURNSTILE_SITE_KEY=your-site-key
+TURNSTILE_SECRET_KEY=your-secret-key
+```
+
+**OBS**: Utan dessa variabler fungerar appen lokalt men utan captcha-skydd.
+
+## 📁 Projektstruktur
+
+```
+redakta-labs/
+├── netlify/
+│   └── functions/
+│       └── quickcheck.ts   # Stateless OSINT-funktion
+├── src/
+│   ├── app/
+│   │   ├── page.tsx        # Landing page + resultat
+│   │   ├── layout.tsx      # Root layout
+│   │   └── globals.css     # Design system
+│   └── components/
+│       ├── DomainInput.tsx # Med Turnstile-widget
+│       ├── VerdictCard.tsx
+│       ├── SkeletonLoader.tsx
+│       ├── Header.tsx
+│       └── Footer.tsx
+├── netlify.toml
+└── package.json
+```
+
+## 🚀 Deploy till Netlify
+
+1. Pusha till GitHub
+2. Koppla repo till Netlify
+3. Lägg till miljövariabler i Netlify Dashboard:
+   - `NEXT_PUBLIC_TURNSTILE_SITE_KEY`
+   - `TURNSTILE_SECRET_KEY`
+4. Deploy!
+
+## ⚠️ Disclaimer
+
+Passiv OSINT-analys. Resultaten är indikativa och ersätter inte en fullständig säkerhetsrevision.
+
+---
+
+**100% Gratis av [SEKURA.SE](https://sekura.se)**
