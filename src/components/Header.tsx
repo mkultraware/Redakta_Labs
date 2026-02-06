@@ -24,7 +24,7 @@ export default function Header() {
 
                 <div className="flex items-center gap-4 md:gap-8">
                     <Link
-                        href="#varfor"
+                        href="/#varfor"
                         className="text-[10px] md:text-[11px] font-bold uppercase tracking-widest text-slate-500 hover:text-slate-900 transition-colors font-mono"
                     >
                         Varför?

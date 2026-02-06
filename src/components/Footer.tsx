@@ -13,7 +13,7 @@ export default function Footer() {
                     <div className="space-y-5">
                         <a href="https://sekura.se" target="_blank" className="inline-block transition-opacity hover:opacity-80">
                             <Image
-                                src="/sekura.svg"
+                                src="/brand-logo.png"
                                 alt="Sekura Logo"
                                 width={100}
                                 height={30}

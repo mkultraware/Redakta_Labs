@@ -81,7 +81,7 @@ export default function DomainInput({ onSubmit, isLoading }: DomainInputProps) {
 
     return (
         <form onSubmit={handleSubmit} className="w-full max-w-2xl mx-auto space-y-6 text-center">
-            <div className="card-premium p-2 shadow-premium flex flex-col md:flex-row gap-2 rounded-full!">
+            <div className="card-premium p-2 shadow-premium flex flex-col md:flex-row gap-2 rounded-2xl md:rounded-full">
                 <input
                     type="text"
                     value={domain}

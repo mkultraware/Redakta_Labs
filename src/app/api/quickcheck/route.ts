@@ -58,6 +58,26 @@ const DOMAIN_BLACKLISTS = [
     "multi.surbl.org",
 ];
 
+// --- CDN Detection (Cloudflare) ---
+const CLOUDFLARE_IPS = [
+    "173.245.48.0/20", "103.21.244.0/22", "103.22.200.0/22", "103.31.4.0/22",
+    "141.101.64.0/18", "108.162.192.0/18", "190.93.240.0/20", "188.114.96.0/20",
+    "197.234.240.0/22", "198.41.128.0/17", "162.158.0.0/15", "104.16.0.0/13",
+    "104.24.0.0/14", "172.64.0.0/13", "131.27.0.0/16"
+];
+
+function isCloudflareIP(ip: string): boolean {
+    const ipToLong = (ip: string) => ip.split('.').reduce((acc, octet) => (acc << 8) + parseInt(octet, 10), 0) >>> 0;
+    const target = ipToLong(ip);
+
+    for (const range of CLOUDFLARE_IPS) {
+        const [base, mask] = range.split('/');
+        const bitmask = (0xffffffff << (32 - parseInt(mask, 10))) >>> 0;
+        if ((ipToLong(base) & bitmask) === (target & bitmask)) return true;
+    }
+    return false;
+}
+
 // --- Domain Validation with XSS Sanitization ---
 function normalizeAndValidateDomain(input: string) {
     if (!input || typeof input !== "string") return { valid: false, error: "Domän krävs" };
@@ -162,26 +182,50 @@ async function checkBlacklists(domain: string) {
     if (!ips || ips.length === 0) return { verdict: "clean", severity: "success", listedCount: 0 };
 
     const ip = ips[0];
+    const isCDN = isCloudflareIP(ip);
     const reversedIP = ip.split(".").reverse().join(".");
     let ipListedCount = 0;
     let domainListedCount = 0;
+    let ignoredCount = 0;
 
     // Check IP blacklists
     for (const bl of IP_BLACKLISTS) {
         const result = await safeResolve4(`${reversedIP}.${bl}`);
-        if (result && result.length > 0) ipListedCount++;
+        if (result && result.length > 0) {
+            // HEURISTIC: Skip UCEPROTECT (Level 1) for CDN IPs as they are frequent false positives
+            if (isCDN && bl === "dnsbl-1.uceprotect.net") {
+                console.info(`[CDN BYPASS] Ignoring UCEPROTECT hit for Cloudflare IP ${ip}`);
+                ignoredCount++;
+                continue;
+            }
+            console.warn(`[BLACKLIST HIT] IP ${ip} listed on ${bl}`);
+            ipListedCount++;
+        }
     }
 
     // Check domain blacklists
     for (const bl of DOMAIN_BLACKLISTS) {
         const result = await safeResolve4(`${domain}.${bl}`);
-        if (result && result.length > 0) domainListedCount++;
+        if (result && result.length > 0) {
+            console.warn(`[BLACKLIST HIT] Domain ${domain} listed on ${bl}`);
+            domainListedCount++;
+        }
     }
 
     const totalListed = ipListedCount + domainListedCount;
     if (totalListed > 0) {
         return { verdict: "listed", severity: "critical", listedCount: totalListed };
     }
+
+    if (isCDN && ignoredCount > 0) {
+        return {
+            verdict: "clean",
+            severity: "success",
+            listedCount: 0,
+            note: "Infrastruktur skyddad via CDN (delad IP). Aggressiva signaler ignorerade."
+        };
+    }
+
     return { verdict: "clean", severity: "success", listedCount: 0 };
 }
 
@@ -236,17 +280,26 @@ export async function POST(req: NextRequest) {
 
         const { domain: inputDomain, turnstileToken } = await req.json();
 
-        // Turnstile Verification
+        // Turnstile Verification (Fail-Closed)
         const secret = process.env.TURNSTILE_SECRET_KEY;
-        if (secret) {
-            if (!turnstileToken) return NextResponse.json({ error: "Captcha krävs" }, { status: 401 });
-            const verifyRes = await fetch(TURNSTILE_VERIFY_URL, {
-                method: "POST",
-                headers: { "Content-Type": "application/x-www-form-urlencoded" },
-                body: new URLSearchParams({ secret, response: turnstileToken }),
-            });
-            const verifyData = await verifyRes.json();
-            if (!verifyData.success) return NextResponse.json({ error: "Captcha misslyckades" }, { status: 401 });
+        if (!secret) {
+            console.error("CRITICAL: TURNSTILE_SECRET_KEY is not configured.");
+            return NextResponse.json({ error: "Säkerhetskonfiguration saknas. Kontakta administratören." }, { status: 500 });
+        }
+
+        if (!turnstileToken) {
+            return NextResponse.json({ error: "Captcha krävs" }, { status: 401 });
+        }
+
+        const verifyRes = await fetch(TURNSTILE_VERIFY_URL, {
+            method: "POST",
+            headers: { "Content-Type": "application/x-www-form-urlencoded" },
+            body: new URLSearchParams({ secret, response: turnstileToken }),
+        });
+
+        const verifyData = await verifyRes.json();
+        if (!verifyData.success) {
+            return NextResponse.json({ error: "Captcha verifiering misslyckades" }, { status: 401 });
         }
 
         const validation = normalizeAndValidateDomain(inputDomain || "");

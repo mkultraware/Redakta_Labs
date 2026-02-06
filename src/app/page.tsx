@@ -114,7 +114,7 @@ export default function Home() {
         <div className="max-w-4xl mx-auto space-y-32">
           {/* Hero Section */}
           <section className="animate-in fade-in duration-1000 bg-grid-subtle -mx-6 px-6 py-12 rounded-3xl">
-            <div className="card-premium p-12 md:p-20 text-center space-y-10 glass border-slate-100/50">
+            <div className="card-premium p-6 md:p-20 text-center space-y-10 glass border-slate-100/50">
               <div className="inline-flex items-center gap-3 px-4 py-1.5 rounded-full bg-slate-50 border border-slate-100 text-[11px] font-bold uppercase tracking-[0.2em] text-slate-400 font-mono">
                 <span className="relative flex h-2 w-2">
                   <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-300 opacity-75"></span>
@@ -340,7 +340,7 @@ export default function Home() {
                 </div>
 
                 {/* Bottom CTA */}
-                <div className="card-premium p-16 md:p-24 text-center space-y-12 glass mt-20 overflow-hidden relative rounded-[3rem]">
+                <div className="card-premium p-8 md:p-24 text-center space-y-12 glass mt-20 overflow-hidden relative rounded-[2rem] md:rounded-[3rem]">
                   <div className="absolute top-0 left-0 w-full h-1.5 bg-linear-to-r from-blue-100 via-emerald-100 to-orange-100 opacity-50" />
                   <div className="space-y-4 relative z-10">
                     <h2 className="text-4xl font-black tracking-tight text-slate-900 uppercase">
