@@ -99,6 +99,7 @@ export default function RootLayout({
         />
         <meta name="geo.region" content="SE" />
         <meta name="geo.placename" content="Sweden" />
+        <meta name="google-site-verification" content="GGQlsiVo37oVMnGZL7Ol8WXeeFQ9VIOYpi9QF-7PoQA" />
       </head>
       <body className={`${outfit.variable} ${firaCode.variable} font-sans antialiased`}>
         {children}
