@@ -189,12 +189,20 @@ async function checkBlacklists(domain: string) {
     let ignoredCount = 0;
 
     // Check IP blacklists
+    // Lists known to frequently flag shared CDN infrastructure
+    const CDN_AGGRESSIVE_LISTS = [
+        "dnsbl-1.uceprotect.net",
+        "dnsbl.sorbs.net",
+        "spam.dnsbl.sorbs.net",
+        "b.barracudacentral.org"
+    ];
+
     for (const bl of IP_BLACKLISTS) {
         const result = await safeResolve4(`${reversedIP}.${bl}`);
         if (result && result.length > 0) {
-            // HEURISTIC: Skip UCEPROTECT (Level 1) for CDN IPs as they are frequent false positives
-            if (isCDN && bl === "dnsbl-1.uceprotect.net") {
-                console.info(`[CDN BYPASS] Ignoring UCEPROTECT hit for Cloudflare IP ${ip}`);
+            // HEURISTIC: Skip aggressive lists for CDN IPs as they are frequent false positives
+            if (isCDN && CDN_AGGRESSIVE_LISTS.includes(bl)) {
+                console.info(`[CDN BYPASS] Ignoring ${bl} hit for Cloudflare IP ${ip}`);
                 ignoredCount++;
                 continue;
             }
