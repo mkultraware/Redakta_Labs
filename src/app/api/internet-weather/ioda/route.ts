@@ -12,6 +12,20 @@ type CandidateSource = {
 };
 
 export const dynamic = "force-dynamic";
+const CACHE_TTL_MS = 10 * 60 * 1000;
+
+let cache: {
+  expiresAt: number;
+  payload: {
+    available: boolean;
+    source: string | null;
+    updatedAt: string;
+    normalcy: number | null;
+    delta: number | null;
+    eventCount: number | null;
+    note: string;
+  };
+} | null = null;
 
 function toEpochSeconds(value: unknown): number | null {
   if (typeof value !== "number" || !Number.isFinite(value)) {
@@ -120,7 +134,27 @@ async function fetchJson(url: string, timeoutMs: number): Promise<unknown> {
   }
 }
 
+function makeResponse(payload: {
+  available: boolean;
+  source: string | null;
+  updatedAt: string;
+  normalcy: number | null;
+  delta: number | null;
+  eventCount: number | null;
+  note: string;
+}) {
+  return NextResponse.json(payload, {
+    headers: {
+      "Cache-Control": "public, s-maxage=600, stale-while-revalidate=60",
+    },
+  });
+}
+
 export async function GET() {
+  if (cache && cache.expiresAt > Date.now()) {
+    return makeResponse(cache.payload);
+  }
+
   const now = Math.floor(Date.now() / 1000);
   const from = now - 24 * 60 * 60;
 
@@ -139,7 +173,7 @@ export async function GET() {
 
   for (const source of sources) {
     try {
-      const payload = await fetchJson(source.url, 6_000);
+      const payload = await fetchJson(source.url, 2_500);
 
       if (source.kind === "signals") {
         const points = parseSignals(payload);
@@ -147,7 +181,7 @@ export async function GET() {
           const latest = points[points.length - 1];
           const baseline =
             points.reduce((sum, point) => sum + point.value, 0) / Math.max(points.length, 1);
-          return NextResponse.json({
+          const responsePayload = {
             available: true,
             source: source.name,
             updatedAt: new Date().toISOString(),
@@ -155,13 +189,18 @@ export async function GET() {
             delta: latest.value - baseline,
             eventCount: null,
             note: "Publik IODA normalcy-signal för SE senaste 24h.",
-          });
+          };
+          cache = {
+            payload: responsePayload,
+            expiresAt: Date.now() + CACHE_TTL_MS,
+          };
+          return makeResponse(responsePayload);
         }
       }
 
       const eventCount = parseEventsCount(payload);
       if (eventCount !== null) {
-        return NextResponse.json({
+        const responsePayload = {
           available: true,
           source: source.name,
           updatedAt: new Date().toISOString(),
@@ -169,14 +208,19 @@ export async function GET() {
           delta: null,
           eventCount,
           note: "Publik IODA eventsammanfattning för SE senaste 24h.",
-        });
+        };
+        cache = {
+          payload: responsePayload,
+          expiresAt: Date.now() + CACHE_TTL_MS,
+        };
+        return makeResponse(responsePayload);
       }
     } catch {
       // Try next candidate source.
     }
   }
 
-  return NextResponse.json({
+  const fallbackPayload = {
     available: false,
     source: null,
     updatedAt: new Date().toISOString(),
@@ -184,5 +228,10 @@ export async function GET() {
     delta: null,
     eventCount: null,
     note: "IODA kunde inte returnera data inom timeoutfönstret.",
-  });
+  };
+  cache = {
+    payload: fallbackPayload,
+    expiresAt: Date.now() + CACHE_TTL_MS,
+  };
+  return makeResponse(fallbackPayload);
 }
