@@ -4,9 +4,9 @@ import Footer from "@/components/Footer";
 import InternetWeatherPanel from "@/components/InternetWeatherPanel";
 
 export const metadata: Metadata = {
-  title: "Sweden Internet Weather | Redakta Labs",
+  title: "Internetprognos för Sverige | Redakta Labs",
   description:
-    "Live BGP turbulence monitor for Sweden based on RIPE RIS Live, with optional CAIDA IODA context. Built with public/free data only.",
+    "Lägesbild av BGP-turbulens i Sverige med RIPE RIS Live och valfri CAIDA IODA-signal. Endast fria och offentliga datakällor.",
   alternates: {
     canonical: "/internet-weather",
   },

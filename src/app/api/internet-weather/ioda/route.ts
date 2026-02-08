@@ -154,7 +154,7 @@ export async function GET() {
             normalcy: latest.value,
             delta: latest.value - baseline,
             eventCount: null,
-            note: "Publik IODA normalcy-signal for SE senaste 24h.",
+            note: "Publik IODA normalcy-signal för SE senaste 24h.",
           });
         }
       }
@@ -168,7 +168,7 @@ export async function GET() {
           normalcy: null,
           delta: null,
           eventCount,
-          note: "Publik IODA event-sammanfattning for SE senaste 24h.",
+          note: "Publik IODA eventsammanfattning för SE senaste 24h.",
         });
       }
     } catch {
@@ -183,6 +183,6 @@ export async function GET() {
     normalcy: null,
     delta: null,
     eventCount: null,
-    note: "IODA kunde inte returnera data inom timeout-fonstret.",
+    note: "IODA kunde inte returnera data inom timeoutfönstret.",
   });
 }

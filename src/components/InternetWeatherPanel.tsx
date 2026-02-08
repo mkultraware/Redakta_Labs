@@ -130,12 +130,25 @@ function weatherForScore(score: number): { label: string; detail: string; tone: 
     return { label: "Lugnt", detail: "Stabil routing i bevakat svenskt AS-kluster.", tone: "text-emerald-600" };
   }
   if (score >= 65) {
-    return { label: "Bris", detail: "Mindre turbulens, men inga tydliga stress-signaler.", tone: "text-sky-600" };
+    return { label: "Bris", detail: "Mindre turbulens men inga tydliga stress-signaler.", tone: "text-sky-600" };
   }
   if (score >= 45) {
-    return { label: "Blasigt", detail: "Forhojd BGP-volatilitet i svenska transitvagar.", tone: "text-amber-600" };
+    return { label: "Blåsigt", detail: "Förhöjd BGP-volatilitet i svenska transitvägar.", tone: "text-amber-600" };
   }
-  return { label: "Storm", detail: "Markant turbulens med hog andel withdrawals.", tone: "text-rose-600" };
+  return { label: "Storm", detail: "Markant turbulens med hög andel withdrawals.", tone: "text-rose-600" };
+}
+
+function connectionText(connection: ConnectionState): string {
+  if (connection === "connected") {
+    return "Ansluten";
+  }
+  if (connection === "reconnecting") {
+    return "Återansluter";
+  }
+  if (connection === "error") {
+    return "Fel";
+  }
+  return "Ansluter";
 }
 
 export default function InternetWeatherPanel() {
@@ -228,17 +241,15 @@ export default function InternetWeatherPanel() {
             normalcy: null,
             delta: null,
             eventCount: null,
-            note: "IODA kunde inte hamtas just nu.",
+            note: "IODA kunde inte hämtas just nu.",
           });
         }
       }
     };
 
     loadIoda();
-    const timer = window.setInterval(loadIoda, 5 * 60_000);
     return () => {
       cancelled = true;
-      window.clearInterval(timer);
     };
   }, []);
 
@@ -288,7 +299,6 @@ export default function InternetWeatherPanel() {
       score,
       totalAnnouncements,
       totalWithdrawals,
-      totalMessages,
       maxPerMinute: Math.max(...totals, 1),
     };
   }, [chartBuckets]);
@@ -304,143 +314,122 @@ export default function InternetWeatherPanel() {
           : "bg-slate-50 text-slate-700 border-slate-200";
 
   return (
-    <div className="space-y-8 sm:space-y-10">
-      <section className="card-premium p-5 sm:p-8 md:p-10 space-y-6">
-        <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-          <div className="space-y-2">
-            <p className="text-[11px] font-bold uppercase tracking-[0.22em] text-slate-400 font-mono">Sweden Internet Weather</p>
-            <h1 className="text-3xl sm:text-4xl md:text-5xl font-black tracking-tight text-slate-900 font-mono">
-              BGP Turbulens i Realtid
-            </h1>
-            <p className="text-sm sm:text-base text-slate-500 max-w-3xl">
-              Baserat pa RIPE RIS Live UPDATE-floden for ett bevakat kluster av svenska AS-nummer. Skalan visar
-              routing-stabilitet senaste 30 minuterna.
-            </p>
-          </div>
-          <div className="flex flex-col gap-2">
-            <span className={`inline-flex items-center justify-center rounded-full border px-4 py-1.5 text-[11px] font-bold uppercase tracking-wider ${connectionBadgeClass}`}>
-              RIS Live: {connection}
-            </span>
-            <span className="text-[11px] text-slate-400 font-mono text-center md:text-right">
-              {lastEventAt ? `Senaste BGP-event: ${formatLocalTime(lastEventAt)}` : "Vantar pa BGP-event..."}
-            </span>
-          </div>
+    <section className="card-premium p-5 sm:p-8 md:p-10 space-y-6">
+      <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+        <div className="space-y-2">
+          <p className="text-[11px] font-bold uppercase tracking-[0.22em] text-slate-400 font-mono">Sweden Internet Weather</p>
+          <h1 className="text-3xl sm:text-4xl md:text-5xl font-black tracking-tight text-slate-900 font-mono">
+            Internetprognos i realtid
+          </h1>
+          <p className="text-sm sm:text-base text-slate-500 max-w-3xl">
+            Offentliga data från RIPE RIS Live, med valfri komplettering från CAIDA IODA.
+          </p>
         </div>
-
-        <div className="grid gap-4 sm:grid-cols-3">
-          <div className="rounded-2xl border border-slate-100 bg-slate-50 p-4 sm:p-5">
-            <p className="text-[11px] uppercase tracking-[0.18em] text-slate-400 font-mono">Weather Score</p>
-            <p className={`mt-1 text-4xl font-black ${weather.tone}`}>{metrics.score}</p>
-            <p className={`mt-1 text-sm font-semibold ${weather.tone}`}>{weather.label}</p>
-            <p className="mt-2 text-xs text-slate-500">{weather.detail}</p>
-          </div>
-          <div className="rounded-2xl border border-slate-100 bg-white p-4 sm:p-5">
-            <p className="text-[11px] uppercase tracking-[0.18em] text-slate-400 font-mono">Announcements</p>
-            <p className="mt-2 text-3xl font-black text-slate-900">{metrics.totalAnnouncements}</p>
-            <p className="mt-2 text-xs text-slate-500">Observerade prefixes annonserade senaste 30 min.</p>
-          </div>
-          <div className="rounded-2xl border border-slate-100 bg-white p-4 sm:p-5">
-            <p className="text-[11px] uppercase tracking-[0.18em] text-slate-400 font-mono">Withdrawals</p>
-            <p className="mt-2 text-3xl font-black text-slate-900">{metrics.totalWithdrawals}</p>
-            <p className="mt-2 text-xs text-slate-500">Indikerar route-instabilitet eller policyforandringar.</p>
-          </div>
+        <div className="flex flex-col gap-2">
+          <span className={`inline-flex items-center justify-center rounded-full border px-4 py-1.5 text-[11px] font-bold uppercase tracking-wider ${connectionBadgeClass}`}>
+            RIS Live: {connectionText(connection)}
+          </span>
+          <span className="text-[11px] text-slate-400 font-mono text-center md:text-right">
+            {lastEventAt ? `Senaste BGP-event: ${formatLocalTime(lastEventAt)}` : "Väntar på BGP-event..."}
+          </span>
         </div>
+      </div>
 
-        <div className="rounded-2xl border border-slate-100 bg-white p-4 sm:p-6">
-          <div className="mb-4 flex items-center justify-between gap-3">
-            <h2 className="text-sm font-bold uppercase tracking-[0.15em] text-slate-500 font-mono">Turbulens senaste 30 min</h2>
-            <p className="text-[11px] text-slate-400 font-mono">1 stapel = 1 minut</p>
-          </div>
-          {chartBuckets.length === 0 ? (
-            <div className="h-32 rounded-xl border border-dashed border-slate-200 bg-slate-50 flex items-center justify-center text-xs text-slate-500">
-              Inga BGP-event annu, vantar pa streamen...
-            </div>
-          ) : (
-            <div className="flex h-32 items-end gap-1">
-              {chartBuckets.map((bucket) => {
-                const heightPct = bucket.total === 0 ? 4 : Math.max((bucket.total / metrics.maxPerMinute) * 100, 8);
-                const isWithdrawalHeavy = bucket.withdrawals > bucket.announcements;
-                return (
-                  <div key={bucket.minute} className="group relative flex-1">
-                    <div
-                      className={`w-full rounded-t-sm ${isWithdrawalHeavy ? "bg-rose-300" : "bg-sky-300"} transition-all`}
-                      style={{ height: `${heightPct}%` }}
-                      aria-label={`${formatLocalTime(bucket.minute)}: ${bucket.total} events`}
-                    />
-                    <div className="pointer-events-none absolute bottom-full left-1/2 mb-1 hidden -translate-x-1/2 rounded bg-slate-900 px-2 py-1 text-[10px] text-white group-hover:block">
-                      {formatLocalTime(bucket.minute)} · {bucket.total}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          )}
-          <div className="mt-4 flex items-center gap-4 text-[11px] text-slate-500">
-            <span className="inline-flex items-center gap-2">
-              <span className="h-2.5 w-2.5 rounded-full bg-sky-300" />
-              Announcement-dominerad minut
-            </span>
-            <span className="inline-flex items-center gap-2">
-              <span className="h-2.5 w-2.5 rounded-full bg-rose-300" />
-              Withdrawal-dominerad minut
-            </span>
-          </div>
-        </div>
-      </section>
-
-      <section className="grid gap-6 lg:grid-cols-[1.2fr_1fr]">
-        <div className="card-premium p-5 sm:p-7 space-y-4">
-          <h2 className="text-sm font-bold uppercase tracking-[0.15em] text-slate-500 font-mono">Sverige-karta</h2>
+      <div className="rounded-2xl border border-slate-100 bg-white p-4 sm:p-6 space-y-4">
+        <h2 className="text-sm font-bold uppercase tracking-[0.15em] text-slate-500 font-mono">Sverigekarta</h2>
+        <div className="grid gap-6 lg:grid-cols-[1.1fr_1fr] items-center">
           <div className="rounded-2xl border border-slate-100 bg-linear-to-br from-sky-50 to-emerald-50 p-4 sm:p-6">
             <Image
               src="/sweden.svg"
-              alt="Karta over Sverige"
+              alt="Karta över Sverige"
               width={880}
               height={980}
-              className="mx-auto h-auto w-full max-w-md"
+              className="mx-auto h-auto w-full max-w-sm sm:max-w-md"
               priority
             />
           </div>
-          <p className="text-xs text-slate-500 leading-relaxed">
-            BGP-vadret ar en indikation och inte en full nationell outage-detektor. Trafiken filtreras mot AS-path med
-            svenska operatorsignaler: {TRACKED_SWEDISH_ASNS.join(", ")}.
-          </p>
+          <div className="space-y-3">
+            <p className={`text-2xl sm:text-3xl font-black ${weather.tone}`}>{weather.label}</p>
+            <p className="text-sm text-slate-500">{weather.detail}</p>
+            <p className="text-xs text-slate-500 leading-relaxed">
+              Detta är en snabb temperaturmätning av BGP-turbulens i svenska nätvägar. Den ersätter inte en full outage-analys.
+            </p>
+            <p className="text-[11px] text-slate-400 font-mono">
+              Bevakade AS-nummer: {TRACKED_SWEDISH_ASNS.join(", ")}
+            </p>
+          </div>
         </div>
+      </div>
 
-        <div className="card-premium p-5 sm:p-7 space-y-4">
-          <h2 className="text-sm font-bold uppercase tracking-[0.15em] text-slate-500 font-mono">CAIDA IODA (valfri signal)</h2>
-          {ioda?.available ? (
-            <div className="space-y-4">
-              {ioda.normalcy !== null ? (
-                <div className="rounded-2xl border border-slate-100 bg-slate-50 p-4">
-                  <p className="text-[11px] uppercase tracking-[0.18em] text-slate-400 font-mono">Normalcy</p>
-                  <p className="mt-2 text-3xl font-black text-slate-900">{ioda.normalcy.toFixed(3)}</p>
-                  <p className="mt-1 text-xs text-slate-500">
-                    Delta: {ioda.delta === null ? "n/a" : `${ioda.delta >= 0 ? "+" : ""}${ioda.delta.toFixed(3)}`}
-                  </p>
-                </div>
-              ) : null}
-              {ioda.eventCount !== null ? (
-                <div className="rounded-2xl border border-slate-100 bg-white p-4">
-                  <p className="text-[11px] uppercase tracking-[0.18em] text-slate-400 font-mono">Outage-events</p>
-                  <p className="mt-2 text-3xl font-black text-slate-900">{ioda.eventCount}</p>
-                </div>
-              ) : null}
-              <p className="text-xs text-slate-500">
-                {ioda.note} {ioda.source ? `Kalla: ${ioda.source}.` : ""}
+      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        <div className="rounded-2xl border border-slate-100 bg-slate-50 p-4 sm:p-5">
+          <p className="text-[11px] uppercase tracking-[0.18em] text-slate-400 font-mono">Weather score</p>
+          <p className={`mt-1 text-4xl font-black ${weather.tone}`}>{metrics.score}</p>
+          <p className="mt-2 text-xs text-slate-500">Skala 0-100 där högre betyder stabilare läge.</p>
+        </div>
+        <div className="rounded-2xl border border-slate-100 bg-white p-4 sm:p-5">
+          <p className="text-[11px] uppercase tracking-[0.18em] text-slate-400 font-mono">Announcements</p>
+          <p className="mt-2 text-3xl font-black text-slate-900">{metrics.totalAnnouncements}</p>
+          <p className="mt-2 text-xs text-slate-500">Observerade prefixannonseringar senaste 30 min.</p>
+        </div>
+        <div className="rounded-2xl border border-slate-100 bg-white p-4 sm:p-5">
+          <p className="text-[11px] uppercase tracking-[0.18em] text-slate-400 font-mono">Withdrawals</p>
+          <p className="mt-2 text-3xl font-black text-slate-900">{metrics.totalWithdrawals}</p>
+          <p className="mt-2 text-xs text-slate-500">Hög andel withdrawals kan indikera instabilitet.</p>
+        </div>
+        <div className="rounded-2xl border border-slate-100 bg-white p-4 sm:p-5">
+          <p className="text-[11px] uppercase tracking-[0.18em] text-slate-400 font-mono">CAIDA IODA</p>
+          {ioda === null ? (
+            <p className="mt-2 text-sm text-slate-500">Laddar valfri signal...</p>
+          ) : ioda.available ? (
+            <div className="mt-2 space-y-1">
+              <p className="text-2xl font-black text-slate-900">
+                {ioda.normalcy !== null ? ioda.normalcy.toFixed(3) : ioda.eventCount ?? "OK"}
               </p>
-              <p className="text-[11px] text-slate-400 font-mono">Uppdaterad {formatLocalTime(new Date(ioda.updatedAt).getTime())}</p>
+              <p className="text-xs text-slate-500">
+                {ioda.normalcy !== null ? "Normalcy-värde" : "Eventsammanfattning"} {ioda.source ? `(${ioda.source})` : ""}
+              </p>
             </div>
           ) : (
-            <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50 p-4 text-sm text-slate-500">
-              {ioda?.note ?? "IODA-data kunde inte laddas just nu. RIS Live fortsatter att uppdateras i realtid."}
-            </div>
+            <p className="mt-2 text-sm text-slate-500">Ingen färsk IODA-data just nu.</p>
           )}
-          <p className="text-xs text-slate-500">
-            Endast fria/offentliga kallor anvands. Ingen Cloudflare Radar och inga RIPE Atlas-krediter.
-          </p>
+          <p className="mt-2 text-xs text-slate-500">Påverkar inte huvudmätningen från RIPE RIS Live.</p>
         </div>
-      </section>
-    </div>
+      </div>
+
+      <div className="rounded-2xl border border-slate-100 bg-white p-4 sm:p-6">
+        <div className="mb-4 flex items-center justify-between gap-3">
+          <h2 className="text-sm font-bold uppercase tracking-[0.15em] text-slate-500 font-mono">Turbulens senaste 30 min</h2>
+          <p className="text-[11px] text-slate-400 font-mono">1 stapel = 1 minut</p>
+        </div>
+        {chartBuckets.length === 0 ? (
+          <div className="h-32 rounded-xl border border-dashed border-slate-200 bg-slate-50 flex items-center justify-center text-xs text-slate-500">
+            Inga BGP-event ännu, väntar på streamen...
+          </div>
+        ) : (
+          <div className="flex h-32 items-end gap-1">
+            {chartBuckets.map((bucket) => {
+              const heightPct = bucket.total === 0 ? 4 : Math.max((bucket.total / metrics.maxPerMinute) * 100, 8);
+              const isWithdrawalHeavy = bucket.withdrawals > bucket.announcements;
+              return (
+                <div key={bucket.minute} className="group relative flex-1">
+                  <div
+                    className={`w-full rounded-t-sm ${isWithdrawalHeavy ? "bg-rose-300" : "bg-sky-300"} transition-all`}
+                    style={{ height: `${heightPct}%` }}
+                    aria-label={`${formatLocalTime(bucket.minute)}: ${bucket.total} events`}
+                  />
+                  <div className="pointer-events-none absolute bottom-full left-1/2 mb-1 hidden -translate-x-1/2 rounded bg-slate-900 px-2 py-1 text-[10px] text-white group-hover:block">
+                    {formatLocalTime(bucket.minute)} · {bucket.total}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+        <p className="mt-4 text-xs text-slate-500">
+          Endast fria/offentliga källor används. Ingen Cloudflare Radar och inga RIPE Atlas-krediter.
+        </p>
+      </div>
+    </section>
   );
 }

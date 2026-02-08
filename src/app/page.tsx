@@ -432,6 +432,31 @@ export default function Home() {
               ))}
             </div>
           )}
+
+          <section className="pt-20">
+            <div className="card-premium p-6 sm:p-8 md:p-10 glass border-slate-100/50">
+              <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-6">
+                <div className="space-y-3 max-w-3xl">
+                  <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-slate-400 font-mono">
+                    Ny funktion
+                  </p>
+                  <h3 className="text-2xl sm:text-3xl font-black tracking-tight text-slate-900 uppercase font-mono">
+                    Internetprognos för Sverige
+                  </h3>
+                  <p className="text-sm sm:text-base text-slate-500 font-medium leading-relaxed">
+                    Se en snabb och enkel lägesbild av internetturbulens i Sverige, baserad på öppna BGP-data i realtid.
+                    Perfekt för att förstå om läget är lugnt, blåsigt eller stormigt just nu.
+                  </p>
+                </div>
+                <a
+                  href="/internet-weather"
+                  className="btn-apple px-7 py-3.5 shadow-sm whitespace-nowrap text-sm sm:text-base uppercase tracking-[0.15em]"
+                >
+                  Öppna Internetprognos
+                </a>
+              </div>
+            </div>
+          </section>
         </div>
       </main>
 
