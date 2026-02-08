@@ -431,9 +431,6 @@ export default function InternetWeatherPanel() {
             })}
           </div>
         )}
-        <p className="mt-4 text-xs text-slate-500">
-          Endast fria/offentliga källor används. Ingen Cloudflare Radar och inga RIPE Atlas-krediter.
-        </p>
       </div>
     </section>
   );
