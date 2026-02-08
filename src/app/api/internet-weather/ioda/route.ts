@@ -13,6 +13,8 @@ type CandidateSource = {
 
 export const dynamic = "force-dynamic";
 const CACHE_TTL_MS = 10 * 60 * 1000;
+const RATE_LIMIT_WINDOW_MS = 60 * 1000;
+const RATE_LIMIT_MAX_REQUESTS = 40;
 
 let cache: {
   expiresAt: number;
@@ -26,6 +28,60 @@ let cache: {
     note: string;
   };
 } | null = null;
+
+const rateLimitStore: Map<string, { count: number; resetAt: number }> = new Map();
+
+function getClientKey(request: Request): string {
+  const forwardedFor = request.headers.get("x-forwarded-for");
+  if (forwardedFor) {
+    const ip = forwardedFor.split(",")[0]?.trim();
+    if (ip) {
+      return ip;
+    }
+  }
+
+  const netlifyClientIp = request.headers.get("x-nf-client-connection-ip");
+  if (netlifyClientIp) {
+    return netlifyClientIp;
+  }
+
+  const fallbackIp = request.headers.get("client-ip");
+  if (fallbackIp) {
+    return fallbackIp;
+  }
+
+  const userAgent = request.headers.get("user-agent") ?? "unknown";
+  return `unknown:${userAgent}`;
+}
+
+function enforceRateLimit(clientKey: string): { limited: boolean; retryAfterSeconds: number } {
+  const now = Date.now();
+
+  for (const [key, value] of rateLimitStore) {
+    if (value.resetAt <= now) {
+      rateLimitStore.delete(key);
+    }
+  }
+
+  const existing = rateLimitStore.get(clientKey);
+  const bucket =
+    existing && existing.resetAt > now
+      ? existing
+      : {
+          count: 0,
+          resetAt: now + RATE_LIMIT_WINDOW_MS,
+        };
+
+  bucket.count += 1;
+  rateLimitStore.set(clientKey, bucket);
+
+  if (bucket.count <= RATE_LIMIT_MAX_REQUESTS) {
+    return { limited: false, retryAfterSeconds: 0 };
+  }
+
+  const retryAfterSeconds = Math.max(1, Math.ceil((bucket.resetAt - now) / 1000));
+  return { limited: true, retryAfterSeconds };
+}
 
 function toEpochSeconds(value: unknown): number | null {
   if (typeof value !== "number" || !Number.isFinite(value)) {
@@ -150,7 +206,30 @@ function makeResponse(payload: {
   });
 }
 
-export async function GET() {
+export async function GET(request: Request) {
+  const clientKey = getClientKey(request);
+  const rateLimit = enforceRateLimit(clientKey);
+  if (rateLimit.limited) {
+    return NextResponse.json(
+      {
+        available: false,
+        source: null,
+        updatedAt: new Date().toISOString(),
+        normalcy: null,
+        delta: null,
+        eventCount: null,
+        note: "För många förfrågningar just nu. Försök igen om en minut.",
+      },
+      {
+        status: 429,
+        headers: {
+          "Retry-After": String(rateLimit.retryAfterSeconds),
+          "Cache-Control": "no-store",
+        },
+      }
+    );
+  }
+
   if (cache && cache.expiresAt > Date.now()) {
     return makeResponse(cache.payload);
   }
