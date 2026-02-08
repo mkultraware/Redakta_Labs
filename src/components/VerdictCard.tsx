@@ -37,25 +37,25 @@ export default function VerdictCard({
                 </span>
             </div>
 
-            <div className="p-6 flex-1">
-                <div className="flex items-start gap-6">
-                    <div className={`w-12 h-12 flex items-center justify-center border border-slate-200 transition-all ${!isLocked ? "group-hover/card:border-slate-800" : "opacity-30"}`}>
-                        <div className="w-6 h-6 text-slate-600">
+            <div className="p-4 sm:p-6 flex-1">
+                <div className="flex items-start gap-4 sm:gap-6">
+                    <div className={`w-10 h-10 sm:w-12 sm:h-12 shrink-0 flex items-center justify-center border border-slate-200 transition-all ${!isLocked ? "group-hover/card:border-slate-800" : "opacity-30"}`}>
+                        <div className="w-5 h-5 sm:w-6 sm:h-6 text-slate-600">
                             {icon}
                         </div>
                     </div>
                     <div className="flex-1 min-w-0">
-                        <div className="flex items-center justify-between mb-3">
-                            <h3 className="text-sm font-black text-slate-900 uppercase font-mono tracking-tight">
+                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-3">
+                            <h3 className="text-xs sm:text-sm font-black text-slate-900 uppercase font-mono tracking-tight truncate">
                                 {title}
                             </h3>
-                            <div className={`text-[10px] font-bold uppercase tracking-widest px-2 py-0.5 border rounded-none font-mono ${badgeClass} ${isLocked ? "glitch-text" : ""}`}>
+                            <div className={`text-[9px] sm:text-[10px] font-bold uppercase tracking-widest px-2 py-0.5 border rounded-none font-mono w-fit ${badgeClass} ${isLocked ? "glitch-text" : ""}`}>
                                 {verdict}
                             </div>
                         </div>
 
                         {details && (
-                            <p className="text-slate-500 leading-snug font-medium text-[13px] font-mono border-l border-slate-200 pl-3">
+                            <p className="text-slate-500 leading-snug font-medium text-[12px] sm:text-[13px] font-mono border-l border-slate-200 pl-3">
                                 {details}
                             </p>
                         )}

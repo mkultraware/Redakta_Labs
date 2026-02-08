@@ -132,11 +132,11 @@ export default function Home() {
     <div className="min-h-screen flex flex-col selection:bg-slate-200">
       <Header />
 
-      <main className="flex-1 px-4 sm:px-6 py-20 lg:py-32">
+      <main className="flex-1 px-3 sm:px-6 py-12 lg:py-32 overflow-x-hidden">
         <div className="max-w-5xl mx-auto">
           {/* Tactical Header / Console Layout */}
-          <section className="animate-in fade-in duration-700 bg-grid-subtle -mx-4 sm:-mx-6 px-4 sm:px-6 py-8 rounded-none border-b border-slate-300">
-            <div className="card-premium p-8 md:p-16 text-left relative overflow-hidden">
+          <section className="animate-in fade-in duration-700 bg-grid-subtle py-8 rounded-none border-b border-slate-300">
+            <div className="card-premium p-5 md:p-16 text-left relative overflow-hidden">
               {/* Mechanical Stamp/Lens Overlay */}
               <div className="absolute top-4 right-4 opacity-10 pointer-events-none">
                 <Image
@@ -155,11 +155,11 @@ export default function Home() {
 
               <div className="grid lg:grid-cols-[1fr,300px] gap-12 items-center">
                 <div className="space-y-8">
-                  <h1 className="text-4xl md:text-6xl font-black tracking-tighter text-slate-900 uppercase leading-[0.85] font-mono">
+                  <h1 className="text-3xl sm:text-4xl md:text-6xl font-black tracking-tighter text-slate-900 uppercase leading-[0.85] font-mono break-words">
                     SÄKRA DIN <br />
                     <span className="text-blue-600">DOMÄNHÄLSA.</span>
                   </h1>
-                  <p className="max-w-xl text-lg text-slate-500 font-medium leading-tight border-l-2 border-slate-200 pl-6">
+                  <p className="max-w-xl text-base sm:text-lg text-slate-500 font-medium leading-tight border-l-2 border-slate-200 pl-4 sm:pl-6">
                     Identifierar indikativa signaler och potentiella risker via publika datakällor.
                     <br />
                     <span className="text-xs uppercase font-mono text-slate-400 mt-2 block">STATUS: YTANALYS</span>
@@ -211,18 +211,18 @@ export default function Home() {
             <section className="relative animate-in fade-in slide-in-from-bottom-8 duration-700 fill-mode-both">
               <div className="space-y-12">
                 <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 pb-8 border-b-2 border-slate-900 border-double">
-                  <div className="space-y-3">
-                    <div className="inline-flex items-center gap-2 px-3 py-1 bg-slate-900 text-white font-mono text-[10px] uppercase font-bold tracking-widest">
+                  <div className="space-y-3 min-w-0">
+                    <div className="inline-flex items-center gap-2 px-3 py-1 bg-slate-900 text-white font-mono text-[10px] uppercase font-bold tracking-widest w-fit">
                       RESULT_REPORT_EXPORT
                     </div>
-                    <h2 className="text-3xl md:text-5xl font-black tracking-tighter text-slate-900 uppercase font-mono break-all leading-none">
+                    <h2 className="text-2xl sm:text-3xl md:text-5xl font-black tracking-tighter text-slate-900 uppercase font-mono break-all leading-none">
                       {report.domain}
                     </h2>
-                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest font-mono">
-                      TIMESTAMP: {new Date(report.timestamp).toISOString()} {/* LEVEL: SURFACE_OSINT */}
+                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest font-mono truncate">
+                      TIMESTAMP: {new Date(report.timestamp).toISOString()}
                     </p>
                   </div>
-                  <div className={`px-8 py-4 border-2 font-mono text-xs font-black uppercase tracking-[0.2em] shadow-[6px_6px_0px_0px_rgba(0,0,0,0.1)] ${report.overallVerdict === "secure"
+                  <div className={`px-5 py-3 sm:px-8 sm:py-4 border-2 font-mono text-[10px] sm:text-xs font-black uppercase tracking-[0.2em] shadow-[4px_4px_0px_0px_rgba(0,0,0,0.1)] w-fit ${report.overallVerdict === "secure"
                     ? "bg-emerald-50 border-emerald-900 text-emerald-900"
                     : report.overallVerdict === "attention"
                       ? "bg-amber-50 border-amber-900 text-amber-900"
