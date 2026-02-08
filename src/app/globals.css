@@ -32,6 +32,7 @@
 body {
   background-color: var(--color-bg);
   background-image:
+    linear-gradient(to top, #e9edf3 0%, #ffffff 58%),
     radial-gradient(at 0% 0%, hsla(210, 100%, 98%, 1) 0, transparent 50%),
     radial-gradient(at 50% 0%, hsla(160, 100%, 98%, 1) 0, transparent 50%),
     radial-gradient(at 100% 0%, hsla(30, 100%, 98%, 1) 0, transparent 50%);

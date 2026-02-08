@@ -146,7 +146,7 @@ function connectionText(connection: ConnectionState): string {
     return "Återansluter";
   }
   if (connection === "error") {
-    return "Fel";
+    return "Otillg\u00E4nglig";
   }
   return "Ansluter";
 }
@@ -196,7 +196,7 @@ export default function InternetWeatherPanel() {
 
       ws.onerror = () => {
         if (active) {
-          setConnection("error");
+          setConnection("reconnecting");
         }
       };
 
@@ -310,7 +310,7 @@ export default function InternetWeatherPanel() {
       : connection === "reconnecting"
         ? "bg-amber-50 text-amber-700 border-amber-200"
         : connection === "error"
-          ? "bg-rose-50 text-rose-700 border-rose-200"
+          ? "bg-slate-50 text-slate-700 border-slate-200"
           : "bg-slate-50 text-slate-700 border-slate-200";
 
   return (
@@ -332,6 +332,11 @@ export default function InternetWeatherPanel() {
           <span className="text-[11px] text-slate-400 font-mono text-center md:text-right">
             {lastEventAt ? `Senaste BGP-event: ${formatLocalTime(lastEventAt)}` : "Väntar på BGP-event..."}
           </span>
+          {connection !== "connected" ? (
+            <span className="text-[11px] text-slate-400 font-mono text-center md:text-right">
+              {"Visar anslutning till datak\u00E4llan, inte ett bekr\u00E4ftat driftfel i Sverige."}
+            </span>
+          ) : null}
         </div>
       </div>
 
