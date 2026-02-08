@@ -1,117 +1,129 @@
 @import "tailwindcss";
 
 :root {
-  --color-primary: #94a3b8;
-  --color-primary-accent: #60a5fa;
-  /* Pastel Blue */
-  --pastel-blue: #eff6ff;
-  --pastel-mint: #f0fdf4;
-  --pastel-peach: #fff7ed;
-  --pastel-rose: #fff1f2;
+  --color-primary: #334155;
+  --color-primary-accent: #3b82f6;
+  
+  /* Tactical Palette */
+  --tactical-bg: #f8fafc;
+  --tactical-cell: #ffffff;
+  --tactical-border: #cbd5e1;
+  --tactical-border-strong: #94a3b8;
+  --tactical-text: #0f172a;
+  --tactical-muted: #64748b;
+  
+  /* Status Colors (Industrial) */
+  --status-ok: #059669;
+  --status-warn: #d97706;
+  --status-risk: #dc2626;
 
-  --color-bg: #ffffff;
-  --color-card: #ffffff;
-  --color-border: #f1f5f9;
-  --color-text: #1e293b;
-  --color-text-muted: #64748b;
-
-  --radius-sm: 0.5rem;
-  --radius-md: 0.75rem;
-  --radius-lg: 1rem;
-  --radius-xl: 1.5rem;
-
-  --shadow-soft: 0 4px 6px -1px rgb(0 0 0 / 0.02), 0 2px 4px -2px rgb(0 0 0 / 0.02);
-  --shadow-premium: 0 20px 25px -5px rgb(0 0 0 / 0.03), 0 8px 10px -6px rgb(0 0 0 / 0.03);
+  --radius-tactical: 2px;
 }
 
 @theme {
-  --font-sans: var(--font-outfit), 'Outfit', 'Inter', ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-  --font-mono: var(--font-fira-code), 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  --font-sans: var(--font-outfit), 'Outfit', 'Inter', ui-sans-serif, system-ui;
+  --font-mono: var(--font-fira-code), 'JetBrains Mono', ui-monospace, monospace;
 }
 
 body {
-  background-color: var(--color-bg);
-  background-image:
-    linear-gradient(to top, #e9edf3 0%, #ffffff 58%),
-    radial-gradient(at 0% 0%, hsla(210, 100%, 98%, 1) 0, transparent 50%),
-    radial-gradient(at 50% 0%, hsla(160, 100%, 98%, 1) 0, transparent 50%),
-    radial-gradient(at 100% 0%, hsla(30, 100%, 98%, 1) 0, transparent 50%);
-  color: var(--color-text);
+  background-color: var(--tactical-bg);
+  background-image: 
+    linear-gradient(var(--tactical-border) 1px, transparent 1px),
+    linear-gradient(90deg, var(--tactical-border) 1px, transparent 1px);
+  background-size: 80px 80px;
+  background-position: center;
+  color: var(--tactical-text);
   font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
-  min-height: 100vh;
+  position: relative;
 }
 
-/* Card Styling */
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  background-image: 
+    linear-gradient(rgba(203, 213, 225, 0.3) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(203, 213, 225, 0.3) 1px, transparent 1px);
+  background-size: 20px 20px;
+  background-position: center;
+  z-index: -1;
+  pointer-events: none;
+}
+
+/* Tactical Cell Styling */
 .card-premium {
-  background: var(--color-card);
-  border-radius: var(--radius-xl);
-  border: 1px solid rgba(241, 245, 249, 1);
-  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05), 0 8px 10px -6px rgba(0, 0, 0, 0.02);
-  transition: all 0.4s cubic-bezier(0.23, 1, 0.32, 1);
+  background: var(--tactical-cell);
+  border-radius: var(--radius-tactical);
+  border: 1px solid var(--tactical-border-strong);
+  box-shadow: 4px 4px 0px 0px rgba(15, 23, 42, 0.05);
+  transition: all 0.2s ease;
+  position: relative;
+}
+
+.card-premium::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 2px;
+  background: var(--tactical-border-strong);
+  opacity: 0.2;
 }
 
 .card-premium:hover {
-  box-shadow: 0 20px 25px -5px rgb(0 0 0 / 0.05), 0 8px 10px -6px rgb(0 0 0 / 0.05);
-  transform: translateY(-4px) scale(1.01);
-  border-color: rgba(203, 213, 225, 0.8);
+  transform: translate(-1px, -1px);
+  box-shadow: 6px 6px 0px 0px rgba(15, 23, 42, 0.1);
+  border-color: var(--tactical-text);
 }
 
-/* Subtle Grid Background for Labs aesthetic */
-.bg-grid-subtle {
-  background-image:
-    linear-gradient(rgba(148, 163, 184, 0.05) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(148, 163, 184, 0.05) 1px, transparent 1px);
-  background-size: 40px 40px;
-}
-
-/* Input Styling */
+/* Utilitarian Input */
 .input-premium {
-  background: rgba(255, 255, 255, 0.8);
-  border: 1px solid var(--color-border);
-  border-radius: 9999px;
-  padding: 1rem 2rem;
-  font-size: 1rem;
-  transition: all 0.2s ease;
+  background: #ffffff;
+  border: 1px solid var(--tactical-border-strong);
+  border-radius: var(--radius-tactical);
+  padding: 0.875rem 1.5rem;
+  font-family: var(--font-mono);
+  font-size: 0.9rem;
+  transition: all 0.15s ease;
 }
 
 .input-premium:focus {
   outline: none;
-  background: #ffffff;
-  border-color: var(--color-primary-accent);
-  box-shadow: 0 0 0 4px rgba(96, 165, 250, 0.1);
+  border-color: var(--tactical-text);
+  box-shadow: 0 0 0 1px var(--tactical-text);
 }
 
-/* Button Styling (Apple Style) */
+/* Command Button */
 .btn-apple {
-  background: #0f172a;
+  background: var(--tactical-text);
   color: #ffffff;
-  padding: 0.75rem 2.25rem;
-  border-radius: 9999px;
-  font-weight: 600;
-  transition: all 0.3s cubic-bezier(0.23, 1, 0.32, 1);
+  padding: 0.875rem 2rem;
+  border-radius: var(--radius-tactical);
+  font-family: var(--font-mono);
+  font-size: 0.85rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  transition: all 0.2s ease;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 0.5rem;
+  gap: 0.75rem;
+  border: 1px solid var(--tactical-text);
 }
 
 .btn-apple:hover {
-  background: #1e293b;
-  transform: translateY(-1px);
-  box-shadow: 0 10px 15px -3px rgba(15, 23, 42, 0.1);
+  background: #ffffff;
+  color: var(--tactical-text);
 }
 
-/* Typography */
-.text-balance {
-  text-wrap: balance;
-}
-
+/* Technical Text */
 .gradient-text-subtle {
-  background: linear-gradient(135deg, #1e293b 0%, #64748b 100%);
-  -webkit-background-clip: text;
-  background-clip: text;
-  -webkit-text-fill-color: transparent;
+  color: var(--tactical-text);
+  background: none;
+  -webkit-text-fill-color: initial;
 }
 
 /* Badge Styling */

@@ -21,6 +21,22 @@ type IodaSnapshot = {
   note: string;
 };
 
+type SitrepAlert = {
+  title: string;
+  link: string;
+  date: string;
+  source: string;
+};
+
+type SitrepData = {
+  alerts: SitrepAlert[];
+  routing: {
+    status: string;
+    coverage: string;
+  };
+  timestamp: string;
+};
+
 const TRACKED_SWEDISH_ASNS = [3301, 2119, 1257, 1653, 8674, 29518];
 const RIS_WS_URL = "wss://ris-live.ripe.net/v1/ws/?client=redakta-labs-internet-weather";
 const BUCKET_WINDOW_MS = 30 * 60 * 1000;
@@ -156,6 +172,7 @@ export default function InternetWeatherPanel() {
   const [buckets, setBuckets] = useState<Bucket[]>([]);
   const [lastEventAt, setLastEventAt] = useState<number | null>(null);
   const [ioda, setIoda] = useState<IodaSnapshot | null>(null);
+  const [sitrep, setSitrep] = useState<SitrepData | null>(null);
 
   useEffect(() => {
     let active = true;
@@ -164,7 +181,15 @@ export default function InternetWeatherPanel() {
 
     const connect = () => {
       setConnection((previous) => (previous === "connected" ? "reconnecting" : "connecting"));
-      ws = new WebSocket(RIS_WS_URL);
+
+      try {
+        ws = new WebSocket(RIS_WS_URL);
+      } catch (error) {
+        // Handle SecurityError when WebSocket connection is blocked (e.g., in development)
+        console.warn("WebSocket connection failed:", error);
+        setConnection("error");
+        return;
+      }
 
       ws.onopen = () => {
         if (!active || !ws) {
@@ -196,7 +221,7 @@ export default function InternetWeatherPanel() {
 
       ws.onerror = () => {
         if (active) {
-          setConnection("reconnecting");
+          setConnection("error");
         }
       };
 
@@ -204,8 +229,11 @@ export default function InternetWeatherPanel() {
         if (!active) {
           return;
         }
-        setConnection("reconnecting");
-        reconnectTimer = window.setTimeout(connect, 3_000);
+        // Only attempt reconnection if we were previously connected
+        if (connection === "connected") {
+          setConnection("reconnecting");
+          reconnectTimer = window.setTimeout(connect, 5_000);
+        }
       };
     };
 
@@ -250,6 +278,28 @@ export default function InternetWeatherPanel() {
     loadIoda();
     return () => {
       cancelled = true;
+    };
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+    const loadSitrep = async () => {
+      try {
+        const response = await fetch("/api/internet-weather/sitrep", { cache: "no-store" });
+        const data = (await response.json()) as SitrepData;
+        if (!cancelled) {
+          setSitrep(data);
+        }
+      } catch (error) {
+        console.error("Sitrep load error:", error);
+      }
+    };
+
+    loadSitrep();
+    const interval = setInterval(loadSitrep, 300_000); // 5 mins
+    return () => {
+      cancelled = true;
+      clearInterval(interval);
     };
   }, []);
 
@@ -340,65 +390,116 @@ export default function InternetWeatherPanel() {
         </div>
       </div>
 
-      <div className="rounded-2xl border border-slate-100 bg-white p-4 sm:p-6 space-y-4">
-        <h2 className="text-sm font-bold uppercase tracking-[0.15em] text-slate-500 font-mono">Sverigekarta</h2>
-        <div className="grid gap-6 lg:grid-cols-[1.1fr_1fr] items-center">
-          <div className="rounded-2xl border border-slate-100 bg-linear-to-br from-sky-50 to-emerald-50 p-4 sm:p-6">
-            <Image
-              src="/sweden.svg"
-              alt="Karta över Sverige"
-              width={880}
-              height={980}
-              className="mx-auto h-auto w-full max-w-sm sm:max-w-md"
-              priority
-            />
-          </div>
-          <div className="space-y-3">
-            <p className={`text-2xl sm:text-3xl font-black ${weather.tone}`}>{weather.label}</p>
-            <p className="text-sm text-slate-500">{weather.detail}</p>
-            <p className="text-xs text-slate-500 leading-relaxed">
-              Detta är en snabb temperaturmätning av BGP-turbulens i svenska nätvägar. Den ersätter inte en full outage-analys.
-            </p>
-            <p className="text-[11px] text-slate-400 font-mono">
-              Bevakade AS-nummer: {TRACKED_SWEDISH_ASNS.join(", ")}
-            </p>
-          </div>
-        </div>
-      </div>
-
-      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <div className="rounded-2xl border border-slate-100 bg-slate-50 p-4 sm:p-5">
-          <p className="text-[11px] uppercase tracking-[0.18em] text-slate-400 font-mono">Weather score</p>
-          <p className={`mt-1 text-4xl font-black ${weather.tone}`}>{metrics.score}</p>
-          <p className="mt-2 text-xs text-slate-500">Skala 0-100 där högre betyder stabilare läge.</p>
-        </div>
-        <div className="rounded-2xl border border-slate-100 bg-white p-4 sm:p-5">
-          <p className="text-[11px] uppercase tracking-[0.18em] text-slate-400 font-mono">Announcements</p>
-          <p className="mt-2 text-3xl font-black text-slate-900">{metrics.totalAnnouncements}</p>
-          <p className="mt-2 text-xs text-slate-500">Observerade prefixannonseringar senaste 30 min.</p>
-        </div>
-        <div className="rounded-2xl border border-slate-100 bg-white p-4 sm:p-5">
-          <p className="text-[11px] uppercase tracking-[0.18em] text-slate-400 font-mono">Withdrawals</p>
-          <p className="mt-2 text-3xl font-black text-slate-900">{metrics.totalWithdrawals}</p>
-          <p className="mt-2 text-xs text-slate-500">Hög andel withdrawals kan indikera instabilitet.</p>
-        </div>
-        <div className="rounded-2xl border border-slate-100 bg-white p-4 sm:p-5">
-          <p className="text-[11px] uppercase tracking-[0.18em] text-slate-400 font-mono">CAIDA IODA</p>
-          {ioda === null ? (
-            <p className="mt-2 text-sm text-slate-500">Laddar valfri signal...</p>
-          ) : ioda.available ? (
-            <div className="mt-2 space-y-1">
-              <p className="text-2xl font-black text-slate-900">
-                {ioda.normalcy !== null ? ioda.normalcy.toFixed(3) : ioda.eventCount ?? "OK"}
-              </p>
-              <p className="text-xs text-slate-500">
-                {ioda.normalcy !== null ? "Normalcy-värde" : "Eventsammanfattning"} {ioda.source ? `(${ioda.source})` : ""}
-              </p>
+      <div className="grid gap-6 lg:grid-cols-[1.5fr_1fr]">
+        <div className="space-y-6">
+          {/* Main Map & Primary Weather Card */}
+          <div className="rounded-2xl border border-slate-100 bg-white p-4 sm:p-6 space-y-4 shadow-xs">
+            <h2 className="text-sm font-bold uppercase tracking-[0.15em] text-slate-500 font-mono text-center lg:text-left">Sverigekarta</h2>
+            <div className="flex flex-col items-center">
+              <div className="w-full rounded-2xl border border-slate-100 bg-linear-to-br from-sky-50 to-emerald-50 p-4 sm:p-8 mb-6">
+                <Image
+                  src="/sweden.svg"
+                  alt="Karta över Sverige"
+                  width={880}
+                  height={980}
+                  className="mx-auto h-auto w-full max-w-[280px] sm:max-w-xs md:max-w-sm"
+                  priority
+                />
+              </div>
+              <div className="w-full text-center lg:text-left space-y-2">
+                <p className={`text-4xl font-black ${weather.tone}`}>{weather.label}</p>
+                <p className="text-base text-slate-500 font-medium">{weather.detail}</p>
+                <p className="text-xs text-slate-400 leading-relaxed max-w-2xl mx-auto lg:mx-0">
+                  Realtidsanalys av BGP-trafikflöden i svenska nät. Förändringar i volym och stabilitet kan indikera regionala eller nationella störningar.
+                </p>
+              </div>
             </div>
-          ) : (
-            <p className="mt-2 text-sm text-slate-500">Ingen färsk IODA-data just nu.</p>
-          )}
-          <p className="mt-2 text-xs text-slate-500">Påverkar inte huvudmätningen från RIPE RIS Live.</p>
+          </div>
+        </div>
+
+        {/* Sidebar: Metrics & Future Sitrep Feed */}
+        <div className="space-y-4">
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-1">
+            <div className="rounded-2xl border border-slate-100 bg-slate-50 p-4 sm:p-5 shadow-xs transition-all hover:shadow-md">
+              <p className="text-[11px] uppercase tracking-[0.18em] text-slate-400 font-mono">Weather score</p>
+              <p className={`mt-1 text-4xl font-black ${weather.tone}`}>{metrics.score}</p>
+              <p className="mt-2 text-[10px] text-slate-400 uppercase tracking-wider font-bold">Stabilitetsindex</p>
+            </div>
+
+            <div className="rounded-2xl border border-slate-100 bg-white p-4 sm:p-5 shadow-xs transition-all hover:shadow-md">
+              <p className="text-[11px] uppercase tracking-[0.18em] text-slate-400 font-mono">BGP Updates (30m)</p>
+              <div className="mt-2 flex items-baseline gap-2">
+                <span className="text-2xl font-black text-slate-900">{metrics.totalAnnouncements}</span>
+                <span className="text-[10px] text-slate-400 font-mono font-bold uppercase tracking-tighter">Announcements</span>
+              </div>
+              <div className="mt-1 flex items-baseline gap-2">
+                <span className="text-2xl font-black text-rose-500">{metrics.totalWithdrawals}</span>
+                <span className="text-[10px] text-rose-400 font-mono font-bold uppercase tracking-tighter">Withdrawals</span>
+              </div>
+            </div>
+
+            <div className="rounded-2xl border border-slate-100 bg-white p-4 sm:p-5 shadow-xs transition-all hover:shadow-md">
+              <p className="text-[11px] uppercase tracking-[0.18em] text-slate-400 font-mono">CAIDA IODA Signal</p>
+              {ioda === null ? (
+                <p className="mt-2 text-sm text-slate-500 animate-pulse">Hämtar data...</p>
+              ) : ioda.available ? (
+                <div className="mt-2 space-y-1">
+                  <p className="text-2xl font-black text-slate-900">
+                    {ioda.normalcy !== null ? ioda.normalcy.toFixed(3) : ioda.eventCount ?? "OK"}
+                  </p>
+                  <div className="flex items-center gap-1">
+                    <div className={`h-1.5 w-1.5 rounded-full ${ioda.normalcy && ioda.normalcy > 0.9 ? 'bg-emerald-500' : 'bg-amber-500'}`} />
+                    <p className="text-[10px] text-slate-400 font-bold uppercase tracking-tighter">
+                      {ioda.source ? ioda.source : "Global Signal"}
+                    </p>
+                  </div>
+                </div>
+              ) : (
+                <p className="mt-2 text-sm text-slate-500 opacity-50 font-mono uppercase text-[10px] tracking-widest font-bold">Otillgänglig</p>
+              )}
+            </div>
+
+            <div className="rounded-2xl border border-slate-100 bg-white p-4 sm:p-5 shadow-xs overflow-hidden flex flex-col max-h-[400px]">
+              <div className="flex items-center justify-between mb-3 border-b border-slate-50 pb-2">
+                <p className="text-[10px] uppercase tracking-[0.18em] text-slate-400 font-mono font-bold">Live Sitrep Feed</p>
+                <div className="flex items-center gap-1">
+                  <span className="relative flex h-2 w-2">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75"></span>
+                    <span className="relative inline-flex rounded-full h-2 w-2 bg-rose-500"></span>
+                  </span>
+                  <span className="text-[9px] font-bold text-rose-500 uppercase tracking-tighter">Live</span>
+                </div>
+              </div>
+
+              <div className="space-y-3 overflow-y-auto pr-1 scrollbar-hide">
+                {sitrep?.alerts && sitrep.alerts.length > 0 ? (
+                  sitrep.alerts.map((alert, idx) => (
+                    <a
+                      key={idx}
+                      href={alert.link}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="block group space-y-1 border-l-2 border-slate-100 pl-3 py-0.5 hover:border-sky-500 transition-colors"
+                    >
+                      <p className="text-[10px] text-slate-400 font-mono uppercase">{alert.source} • {new Date(alert.date).toLocaleDateString('sv-SE')}</p>
+                      <p className="text-[11px] font-bold text-slate-700 leading-snug group-hover:text-sky-600 line-clamp-2 transition-colors">
+                        {alert.title}
+                      </p>
+                    </a>
+                  ))
+                ) : (
+                  <div className="space-y-3 opacity-40">
+                    {[1, 2, 3].map(i => (
+                      <div key={i} className="animate-pulse flex flex-col gap-2">
+                        <div className="h-2 w-20 bg-slate-100 rounded"></div>
+                        <div className="h-3 w-40 bg-slate-100 rounded"></div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
         </div>
       </div>
 

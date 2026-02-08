@@ -8,6 +8,7 @@ const resolveMx = promisify(dns.resolveMx);
 const resolve4 = promisify(dns.resolve4);
 
 const DNS_TIMEOUT_MS = 2000;
+const FETCH_TIMEOUT_MS = 5000;
 const TURNSTILE_VERIFY_URL = "https://challenges.cloudflare.com/turnstile/v0/siteverify";
 
 // --- Rate Limiting (in-memory, per serverless instance) ---
@@ -148,7 +149,7 @@ async function checkEmailSecurity(domain: string) {
 
     const dmarcTxt = await safeResolveTxt(`_dmarc.${domain}`);
     const dmarcRecord = dmarcTxt?.flat().find(r => r.toLowerCase().startsWith("v=dmarc1"));
-    const hasDMARC = !!dmarcRecord;
+    // hasDMARC is used for policy extraction logic, not as a standalone check
 
     // DMARC policy extraction (from sekura_avm.py logic)
     let dmarcPolicy: "reject" | "quarantine" | "none" | "missing" = "missing";
@@ -173,6 +174,66 @@ async function checkEmailSecurity(domain: string) {
     } else {
         // No protection at all
         return { verdict: "not_protected", severity: "critical", riskLevel: 3 };
+    }
+}
+
+// --- DNS Armor Check (CAA/Security Records) ---
+async function checkDNSArmor(domain: string) {
+    try {
+        const resolve = promisify(dns.resolve);
+        const caa = await withTimeout(resolve(domain, "CAA"), DNS_TIMEOUT_MS);
+        const hasArmor = caa !== null && caa.length > 0;
+
+        return {
+            verdict: hasArmor ? "hardened" : "missing",
+            severity: hasArmor ? "success" : "warning",
+            riskLevel: hasArmor ? 0 : 1
+        };
+    } catch {
+        return { verdict: "unknown", severity: "neutral", riskLevel: 0 };
+    }
+}
+
+// --- Shadow Infrastructure (Certificate Transparency Logs) ---
+async function checkShadowInfrastructure(domain: string) {
+    try {
+        const res = await fetch(`https://crt.sh/?q=${domain}&output=json`, {
+            signal: AbortSignal.timeout(FETCH_TIMEOUT_MS)
+        });
+        if (!res.ok) throw new Error("crt.sh error");
+        const data = await res.json();
+
+        // Obfuscate: just return count and a verdict, not the actual names
+        const uniqueNames = new Set((data as Array<{ name_value: string }>).map((item) => item.name_value));
+        const count = uniqueNames.size;
+
+        return {
+            verdict: count > 15 ? "high_exposure" : count > 5 ? "monitored" : "stable",
+            severity: count > 15 ? "critical" : count > 5 ? "warning" : "success",
+            count: count // Still useful for the "Total identifiers" stat
+        };
+    } catch {
+        return { verdict: "unknown", severity: "neutral", count: 0 };
+    }
+}
+
+// --- Historical Footprint (Archive.org CDX) ---
+async function checkHistoricalFootprint(domain: string) {
+    try {
+        const res = await fetch(`https://web.archive.org/cdx/search/cdx?url=${domain}/*&output=json&fl=original&collapse=urlkey&limit=100`, {
+            signal: AbortSignal.timeout(FETCH_TIMEOUT_MS)
+        });
+        if (!res.ok) throw new Error("Archive error");
+        const data = await res.json();
+        const count = Math.max(0, data.length - 1); // Remove header row
+
+        return {
+            verdict: count > 50 ? "deep_history" : count > 20 ? "visible" : "minimal",
+            severity: count > 50 ? "warning" : "success",
+            count: count
+        };
+    } catch {
+        return { verdict: "unknown", severity: "neutral", count: 0 };
     }
 }
 
@@ -310,16 +371,24 @@ export async function POST(req: NextRequest) {
         }
 
         const domain = validation.domain;
-        const [emailSecurity, blacklist, typosquat] = await Promise.all([
+        const [emailSecurity, blacklist, typosquat, dnsArmor, shadowInfra, history] = await Promise.all([
             checkEmailSecurity(domain),
             checkBlacklists(domain),
             checkTyposquats(domain),
+            checkDNSArmor(domain),
+            checkShadowInfrastructure(domain),
+            checkHistoricalFootprint(domain),
         ]);
 
         // Calculate overall risk score (obfuscated)
-        const totalRisk = emailSecurity.riskLevel + blacklist.listedCount + typosquat.count;
+        const totalRisk = emailSecurity.riskLevel
+            + (blacklist.verdict === "listed" ? 3 : 0)
+            + typosquat.count
+            + dnsArmor.riskLevel
+            + (shadowInfra.verdict === "high_exposure" ? 2 : shadowInfra.verdict === "monitored" ? 1 : 0);
+
         let overallVerdict: "secure" | "attention" | "risk" = "secure";
-        if (totalRisk >= 3) overallVerdict = "risk";
+        if (totalRisk >= 4) overallVerdict = "risk";
         else if (totalRisk >= 1) overallVerdict = "attention";
 
         return NextResponse.json({
@@ -329,6 +398,9 @@ export async function POST(req: NextRequest) {
             emailSecurity,
             blacklist,
             typosquat,
+            dnsArmor,
+            shadowInfra,
+            history
         });
     } catch (error) {
         console.error("API Error:", error);

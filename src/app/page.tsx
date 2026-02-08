@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import Image from "next/image";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
@@ -15,6 +15,9 @@ interface ScanResult {
   emailSecurity: { verdict: string; severity: string; riskLevel: number };
   blacklist: { verdict: string; severity: string; listedCount: number };
   typosquat: { verdict: string; severity: string; count: number };
+  dnsArmor: { verdict: string; severity: string; riskLevel: number };
+  shadowInfra: { verdict: string; severity: string; count: number };
+  history: { verdict: string; severity: string; count: number };
 }
 
 export default function Home() {
@@ -23,7 +26,14 @@ export default function Home() {
   const [terminalLines, setTerminalLines] = useState<string[]>([]);
   const [report, setReport] = useState<ScanResult | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [currentDomain, setCurrentDomain] = useState("");
+  const [currentDomain, setCurrentDomain] = useState(""); // eslint-disable-line @typescript-eslint/no-unused-vars
+  const terminalRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (isPreLoading && terminalRef.current) {
+      terminalRef.current.scrollIntoView({ behavior: "smooth", block: "center" });
+    }
+  }, [isPreLoading]);
 
   const handleSubmit = async (domain: string, turnstileToken: string) => {
     setCurrentDomain(domain);
@@ -74,10 +84,10 @@ export default function Home() {
     }
   };
 
-  const getVerdictLabel = (verdict: string, type: "email" | "blacklist" | "typosquat") => {
-    if (verdict === "protected" || verdict === "clean" || verdict === "safe") return "KONTROLL OK";
-    if (verdict === "partial" || verdict === "risk_detected") return "OSÄKER SIGNAL";
-    if (verdict === "not_protected" || verdict === "listed") return "INDIKERAD RISK";
+  const getVerdictLabel = (verdict: string, _type: string) => {
+    if (verdict === "protected" || verdict === "clean" || verdict === "safe" || verdict === "hardened" || verdict === "stable" || verdict === "minimal") return "KONTROLL OK";
+    if (verdict === "partial" || verdict === "risk_detected" || verdict === "monitored" || verdict === "visible") return "OSÄKER SIGNAL";
+    if (verdict === "not_protected" || verdict === "listed" || verdict === "high_exposure" || verdict === "deep_history" || verdict === "missing") return "INDIKERAD RISK";
     return "ANALYS KRÄVS";
   };
 
@@ -88,7 +98,7 @@ export default function Home() {
     return "neutral";
   };
 
-  const getObfuscatedMessage = (type: "email" | "blacklist" | "typosquat", verdict: string) => {
+  const getObfuscatedMessage = (type: string, verdict: string, count?: number) => {
     if (type === "email") {
       if (verdict === "protected") return "Integritet bekräftad via passiv kontroll.";
       if (verdict === "partial") return "Instabilitet i autentiseringen upptäckt.";
@@ -103,55 +113,70 @@ export default function Home() {
       if (verdict === "safe") return "No public DNS matches found in surface-zones.";
       return "Phishing-vektorer bekräftade via certifikatindex.";
     }
+    if (type === "dnsArmor") {
+      if (verdict === "hardened") return "Modern armering (CAA) detekterad på domänen.";
+      return "Domänen saknar moderna spärrar mot resurs-kapning.";
+    }
+    if (type === "shadowInfra") {
+      if (verdict === "stable") return `Minimal exponering (${count || 0} identifierare).`;
+      return `Hittade ${count || 0} noder i CT-loggar. Potentiellt oskyddade dörrar.`;
+    }
+    if (type === "history") {
+      if (verdict === "minimal") return "Minimalt avtryck i historiska arkiv.";
+      return `Hittade ${count || 0} noder i arkiven. Gamla sårbarheter kan finnas kvar.`;
+    }
     return "";
   };
 
   return (
-    <div className="min-h-screen flex flex-col selection:bg-blue-100">
+    <div className="min-h-screen flex flex-col selection:bg-slate-200">
       <Header />
 
-      <main className="flex-1 px-4 sm:px-6 py-20 sm:py-24 lg:py-40">
-        <div className="max-w-4xl mx-auto space-y-32">
-          {/* Hero Section */}
-          <section className="animate-in fade-in duration-1000 bg-grid-subtle -mx-4 sm:-mx-6 px-4 sm:px-6 py-8 sm:py-12 rounded-3xl">
-            <div className="card-premium p-5 sm:p-6 md:p-20 text-center space-y-10 glass border-slate-100/50">
-              <div className="inline-flex items-center gap-3 px-4 py-1.5 rounded-full bg-slate-50 border border-slate-100 text-[11px] font-bold uppercase tracking-[0.2em] text-slate-400 font-mono">
-                <span className="relative flex h-2 w-2">
-                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-300 opacity-75"></span>
-                  <span className="relative inline-flex rounded-full h-2 w-2 bg-blue-400"></span>
-                </span>
-                Passiv OSINT-analys
+      <main className="flex-1 px-4 sm:px-6 py-20 lg:py-32">
+        <div className="max-w-5xl mx-auto">
+          {/* Tactical Header / Console Layout */}
+          <section className="animate-in fade-in duration-700 bg-grid-subtle -mx-4 sm:-mx-6 px-4 sm:px-6 py-8 rounded-none border-b border-slate-300">
+            <div className="card-premium p-8 md:p-16 text-left relative overflow-hidden">
+              {/* Mechanical Stamp/Lens Overlay */}
+              <div className="absolute top-4 right-4 opacity-10 pointer-events-none">
+                <Image
+                  src="/sekura.svg"
+                  alt="Sekura stamp"
+                  width={140}
+                  height={140}
+                  className="grayscale rotate-12"
+                />
               </div>
 
-              <div className="space-y-6">
-                <div className="flex justify-center mb-8">
-                  <Image
-                    src="/brand-logo.png"
-                    alt="Redakta Logo"
-                    width={180}
-                    height={80}
-                    className="object-contain"
-                    priority
-                  />
+              <div className="inline-flex items-center gap-2 mb-8 font-mono text-[10px] font-bold uppercase tracking-widest text-slate-500">
+                <span className="h-1.5 w-1.5 bg-blue-500 block"></span>
+                REDAKTA LABS // ANALYS
+              </div>
+
+              <div className="grid lg:grid-cols-[1fr,300px] gap-12 items-center">
+                <div className="space-y-8">
+                  <h1 className="text-4xl md:text-6xl font-black tracking-tighter text-slate-900 uppercase leading-[0.85] font-mono">
+                    SÄKRA DIN <br />
+                    <span className="text-blue-600">DOMÄNHÄLSA.</span>
+                  </h1>
+                  <p className="max-w-xl text-lg text-slate-500 font-medium leading-tight border-l-2 border-slate-200 pl-6">
+                    Identifierar indikativa signaler och potentiella risker via publika datakällor.
+                    <br />
+                    <span className="text-xs uppercase font-mono text-slate-400 mt-2 block">STATUS: YTANALYS</span>
+                  </p>
+                  <div className="pt-4">
+                    <DomainInput onSubmit={handleSubmit} isLoading={isPreLoading || isLoading} />
+                  </div>
                 </div>
-                <h1 className="text-3xl sm:text-4xl md:text-7xl leading-[0.95] font-black tracking-tight md:tracking-tighter text-slate-900 uppercase font-mono">
-                  SÄKRA DIN <br />
-                  <span className="gradient-text-subtle [overflow-wrap:anywhere]">DOMÄNIDENTITET.</span>
-                </h1>
-                <p className="max-w-2xl mx-auto text-base sm:text-lg md:text-xl text-slate-500 font-medium leading-relaxed">
-                  Vi belyser indikativa signaler och potentiella risker i din domäns infrastruktur.
-                  Passiv OSINT-analys som belyser behovet av djuplodande säkerhetsgranskning.
-                </p>
-                <div className="pt-8">
-                  <DomainInput onSubmit={handleSubmit} isLoading={isPreLoading || isLoading} />
-                </div>
+
+                <div>{/* Spacing for layout balance */}</div>
               </div>
             </div>
           </section>
 
           {/* Terminal Loader */}
           {isPreLoading && (
-            <div className="max-w-xl mx-auto space-y-8 animate-in fade-in slide-in-from-bottom-4">
+            <div ref={terminalRef} className="max-w-xl mx-auto space-y-8 animate-in fade-in slide-in-from-bottom-4 scroll-mt-20">
               <div className="terminal-loader">
                 {terminalLines.map((line, i) => (
                   <div key={i} className="terminal-line">{line}</div>
@@ -181,45 +206,48 @@ export default function Home() {
             </div>
           )}
 
-          {/* Results */}
+          {/* Results Header */}
           {report && !isLoading && !isPreLoading && (
-            <section className="relative animate-in fade-in slide-in-from-bottom-12 duration-1000 fill-mode-both">
-              {/* Depth Gauge - Fixed Right for results */}
-              <div className="hidden lg:block absolute -left-20 top-0 h-full">
-                <div className="sticky top-40 flex flex-col items-center gap-4">
-                  <div className="depth-gauge-container">
-                    <div className="depth-section depth-active" />
-                    <div className="depth-section depth-inactive" />
-                    <div className="depth-section depth-inactive" />
-                  </div>
-                  <span className="[writing-mode:vertical-lr] rotate-180 text-[10px] font-black uppercase tracking-widest text-slate-400 whitespace-nowrap font-mono">
-                    Djuppnivå: Yta
-                  </span>
-                </div>
-              </div>
-
-              <div className="space-y-16">
-                <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 pb-12 border-b border-slate-100">
-                  <div className="space-y-2">
-                    <h2 className="text-2xl sm:text-3xl md:text-4xl font-black tracking-tight text-slate-900 uppercase font-mono break-all">
-                      DOMÄN: {report.domain}
+            <section className="relative animate-in fade-in slide-in-from-bottom-8 duration-700 fill-mode-both">
+              <div className="space-y-12">
+                <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 pb-8 border-b-2 border-slate-900 border-double">
+                  <div className="space-y-3">
+                    <div className="inline-flex items-center gap-2 px-3 py-1 bg-slate-900 text-white font-mono text-[10px] uppercase font-bold tracking-widest">
+                      RESULT_REPORT_EXPORT
+                    </div>
+                    <h2 className="text-3xl md:text-5xl font-black tracking-tighter text-slate-900 uppercase font-mono break-all leading-none">
+                      {report.domain}
                     </h2>
-                    <p className="text-[11px] font-bold text-slate-300 uppercase tracking-[0.2em]">
-                      Status: OSINT_SURFACE_SCAN / {new Date(report.timestamp).toLocaleString("sv-SE")}
+                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest font-mono">
+                      TIMESTAMP: {new Date(report.timestamp).toISOString()} {/* LEVEL: SURFACE_OSINT */}
                     </p>
                   </div>
-                  <div className={`px-6 py-3 rounded-full text-[11px] font-bold uppercase tracking-widest shadow-lg ${report.overallVerdict === "secure"
-                    ? "bg-emerald-500 text-white"
+                  <div className={`px-8 py-4 border-2 font-mono text-xs font-black uppercase tracking-[0.2em] shadow-[6px_6px_0px_0px_rgba(0,0,0,0.1)] ${report.overallVerdict === "secure"
+                    ? "bg-emerald-50 border-emerald-900 text-emerald-900"
                     : report.overallVerdict === "attention"
-                      ? "bg-amber-500 text-white"
-                      : "bg-rose-500 text-white"
+                      ? "bg-amber-50 border-amber-900 text-amber-900"
+                      : "bg-rose-50 border-rose-900 text-rose-900"
                     }`}>
-                    {report.overallVerdict === "secure" ? "YTLIG KONTROLL OK" : report.overallVerdict === "attention" ? "EXPONERAT LÄGE" : "SYSTEMISKA BRISTER"}
+                    {report.overallVerdict === "secure" ? "LÅG INDIKATIV RISK" : report.overallVerdict === "attention" ? "EXPONERAD ATTACKYTA" : "GRANSKNING REKOMMENDERAS"}
                   </div>
                 </div>
 
                 {/* Primary Scan Results */}
                 <div className="grid gap-6 md:grid-cols-2">
+                  {/* Depth Gauge - Fixed Right for results */}
+                  <div className="hidden lg:block absolute -left-20 top-0 h-full">
+                    <div className="sticky top-40 flex flex-col items-center gap-4">
+                      <div className="depth-gauge-container">
+                        <div className="depth-section depth-active" />
+                        <div className="depth-section depth-inactive" />
+                        <div className="depth-section depth-inactive" />
+                      </div>
+                      <span className="[writing-mode:vertical-lr] rotate-180 text-[10px] font-black uppercase tracking-widest text-slate-400 whitespace-nowrap font-mono">
+                        Djuppnivå: Yta
+                      </span>
+                    </div>
+                  </div>
+
                   <VerdictCard
                     title="IDENTITETSLAGER"
                     verdict={getVerdictLabel(report.emailSecurity.verdict, "email")}
@@ -251,13 +279,33 @@ export default function Home() {
                   />
 
                   <VerdictCard
-                    title="INFRASTRUKTUR"
-                    verdict="YTA OK"
-                    verdictType="neutral"
+                    title="DNS ARMOR"
+                    verdict={getVerdictLabel(report.dnsArmor.verdict, "dnsArmor")}
+                    verdictType={getVerdictType(report.dnsArmor.severity)}
+                    icon={
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10" /><path d="m12 8 4 4-4 4" /><path d="M8 12h8" /></svg>
+                    }
+                    details={getObfuscatedMessage("dnsArmor", report.dnsArmor.verdict)}
+                  />
+
+                  <VerdictCard
+                    title="SHADOW INFRASTRUCTURE"
+                    verdict={getVerdictLabel(report.shadowInfra.verdict, "shadowInfra")}
+                    verdictType={getVerdictType(report.shadowInfra.severity)}
                     icon={
                       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M21 12V7H5a2 2 0 0 1 0-4h14v4" /><path d="M3 5v14a2 2 0 0 0 2 2h16v-5" /><path d="M18 12a2 2 0 0 0 0 4h4v-4Z" /></svg>
                     }
-                    details="Externa ingångspunkter bekräftade."
+                    details={getObfuscatedMessage("shadowInfra", report.shadowInfra.verdict, report.shadowInfra.count)}
+                  />
+
+                  <VerdictCard
+                    title="GHOST FOOTPRINT"
+                    verdict={getVerdictLabel(report.history.verdict, "history")}
+                    verdictType={getVerdictType(report.history.severity)}
+                    icon={
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10" /><path d="M12 6v6l4 2" /></svg>
+                    }
+                    details={getObfuscatedMessage("history", report.history.verdict, report.history.count)}
                   />
                 </div>
 
@@ -279,7 +327,7 @@ export default function Home() {
                       icon={
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><rect width="18" height="11" x="3" y="11" rx="2" ry="2" /><path d="M7 11V7a5 5 0 0 1 10 0v4" /></svg>
                       }
-                      details="Aktiv portskanning inaktiverad."
+                      details="Aktiv sondering efter öppna bakdörrar kräver djuppnivå. Hacker-skript gör detta 24/7. Vet du vad de ser?"
                     />
 
                     <VerdictCard
@@ -290,7 +338,7 @@ export default function Home() {
                       icon={
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="m12 14 4-4" /><path d="m3.34 19 8.66-8.66" /><path d="m20.66 19-8.66-8.66" /><circle cx="12" cy="10" r="2" /><circle cx="12" cy="21" r="2" /><circle cx="3" cy="21" r="2" /><circle cx="21" cy="21" r="2" /><circle cx="12" cy="2" r="2" /></svg>
                       }
-                      details="Versions-sondering krävs."
+                      details="Identifiering av kända sårbarheter i din mjukvarustack. Kräver versions-analys via Sekura-core."
                     />
 
                     <VerdictCard
@@ -301,7 +349,7 @@ export default function Home() {
                       icon={
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10" /><path d="m12 8 4 4-4 4" /><path d="M8 12h8" /></svg>
                       }
-                      details="Deep-crawl mapping inaktiverad."
+                      details="Djupkartering ser ALLT hackers ser. Boka audi för full insyn."
                     />
 
                     <VerdictCard
@@ -312,7 +360,7 @@ export default function Home() {
                       icon={
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10" /><circle cx="12" cy="12" r="3" /></svg>
                       }
-                      details="Edge protection analysis hoppas över."
+                      details="Verifiering av brandväggsskydd och bypass-vektorer. Kritisk för att stoppa automatiserade attacker."
                     />
 
                     <VerdictCard
@@ -323,7 +371,7 @@ export default function Home() {
                       icon={
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="m21 21-4.3-4.3" /><path d="M11 8 7 12l4 4" /><path d="m13 8 4 4-4 4" /></svg>
                       }
-                      details="Penetrationstester inaktiverade."
+                      details="Simulerade attacker för att hitta dolda ingångar. Sekura utför dessa under kontrollerade former."
                     />
 
                     <VerdictCard
@@ -334,31 +382,36 @@ export default function Home() {
                       icon={
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" /><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" /></svg>
                       }
-                      details="Fuzzing av API-vägar kräver tillstånd."
+                      details="API-läckage är den vanligaste orsaken till dataförlust. Kräver auktoriserad fullskalig analys."
                     />
                   </div>
                 </div>
 
                 {/* Bottom CTA */}
-                <div className="card-premium p-6 sm:p-8 md:p-24 text-center space-y-8 sm:space-y-12 glass mt-20 overflow-hidden relative rounded-[2rem] md:rounded-[3rem]">
-                  <div className="absolute top-0 left-0 w-full h-1.5 bg-linear-to-r from-blue-100 via-emerald-100 to-orange-100 opacity-50" />
-                  <div className="space-y-4 relative z-10">
-                    <h2 className="text-2xl sm:text-3xl md:text-4xl font-black tracking-tight text-slate-900 uppercase">
-                      Lås upp full sårbarhetsanalys
+                <div className="card-premium p-8 md:p-32 text-center space-y-12 mt-32 relative overflow-hidden bg-slate-50 border-2 border-slate-900 shadow-[12px_12px_0px_0px_rgba(15,23,42,0.1)] rounded-none">
+                  <div className="absolute top-0 left-0 w-full h-1 bg-slate-900" />
+                  <div className="space-y-6 relative z-10">
+                    <h2 className="text-3xl md:text-5xl font-black tracking-tighter text-slate-900 uppercase font-mono leading-none">
+                      DJUPARE ANALYS <br />
+                      <span className="text-blue-600">REKOMMENDERAS.</span>
                     </h2>
-                    <p className="text-slate-400 max-w-lg mx-auto font-medium text-base sm:text-lg">
-                      Ytlig analys indikerar risker men inte fullständig omfattning.
-                      Kontakta Sekura för professionell säkerhetsrådgivning.
+                    <p className="max-w-xl mx-auto text-lg text-slate-500 font-mono font-bold leading-tight uppercase border-y border-slate-200 py-4">
+                      Identifierade riskvektorer kräver auktoriserat djupprovning för fullständig mitigering.
                     </p>
                   </div>
-                  <div className="flex flex-col sm:flex-row items-center justify-center gap-6 relative z-10">
+                  <div className="flex flex-col sm:flex-row items-center justify-center gap-6 pt-4">
                     <a
                       href="https://sekura.se"
                       target="_blank"
-                      className="btn-apple px-12 py-5 shadow-2xl shadow-slate-200 w-full sm:w-auto text-lg uppercase tracking-widest"
+                      rel="noopener noreferrer"
+                      className="btn-apple text-lg px-12 py-4 shadow-[4px_4px_0px_0px_rgba(255,255,255,1)]"
                     >
-                      Boka Skarp Granskning
+                      BOKA_DIAGNOS
                     </a>
+                    <div className="text-[10px] font-mono font-bold text-slate-400 uppercase tracking-widest text-left space-y-1">
+                      <div>{/* SESSION_ID */} {Math.random().toString(36).substring(7).toUpperCase()}</div>
+                      <div>{/* STATUS */} READY_FOR_DEEP_SCAN</div>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -366,21 +419,21 @@ export default function Home() {
           )}
 
           {/* Why is this important section */}
-          <section id="varfor" className="scroll-mt-32 space-y-16 animate-in fade-in slide-in-from-bottom-8 duration-1000">
+          <section id="varfor" className="mt-24 scroll-mt-32 space-y-16 animate-in fade-in slide-in-from-bottom-8 duration-1000 border-t border-slate-100 pt-24">
             <div className="grid md:grid-cols-2 gap-20 items-center">
               <div className="space-y-8">
                 <h2 className="text-3xl sm:text-4xl md:text-5xl font-black tracking-tight md:tracking-tighter text-slate-900 uppercase font-mono leading-[0.95]">
                   Cyberbrottslighet <br />
                   <span className="text-rose-500">Diskriminerar Inte.</span>
                 </h2>
-                <div className="space-y-6 text-lg text-slate-500 font-medium leading-relaxed">
+                <div className="space-y-6 text-lg text-slate-500 font-medium leading-relaxed border-l-2 border-slate-200 pl-8">
                   <p>
-                    Över <span className="text-slate-900 font-bold">70%</span> av alla cyberattacker i Sverige börjar med nätfiske och social engineering.
-                    Många organisationer lever i tron att de är för små för att vara ett mål.
+                    Över <span className="text-slate-900 font-bold">70%</span> av alla cyberattacker i Sverige börjar med nätfiske.
+                    Din domän är ditt ansikte utåt – och hackers första angreppspunkt.
                   </p>
                   <p>
-                    Verkligheten är den motsatta: automatiserade skript letar konstant efter de lättaste ingångshålen.
-                    En felkonfigurerad e-postserver eller en oskyddad domän är en öppen inbjudan till identitetsstöld och VD-bedrägerier.
+                    Automatiserade skript letar konstant efter de lättaste ingångshålen.
+                    En felkonfigurerad server eller en oskyddad identitet är en öppen inbjudan till intrång.
                   </p>
                 </div>
               </div>
@@ -397,16 +450,16 @@ export default function Home() {
                     Av nätfiske-attacker riktas mot personalens identitetsbrister.
                   </p>
                 </div>
-                <div className="card-premium p-8 bg-slate-50 border-slate-100 space-y-4">
+                <div className="card-premium p-8 bg-slate-50 border-slate-100 space-y-4 rounded-none">
                   <div className="text-3xl font-black text-slate-900 font-mono">24/7</div>
                   <p className="text-[11px] font-bold uppercase tracking-widest text-slate-400 leading-tight font-mono">
-                    Automatiserad probing sker mot din infrastruktur.
+                    Hotbilden är konstant. Hackers skannar nätet dygnet runt.
                   </p>
                 </div>
-                <div className="card-premium p-8 bg-slate-50 border-slate-100 space-y-4">
-                  <div className="text-3xl font-black text-slate-900 font-mono">0ms</div>
+                <div className="card-premium p-8 bg-slate-50 border-slate-100 space-y-4 rounded-none">
+                  <div className="text-3xl font-black text-slate-900 font-mono">100%</div>
                   <p className="text-[11px] font-bold uppercase tracking-widest text-slate-400 leading-tight font-mono">
-                    Vi sparar ingen data – din sökning är helt privat.
+                    PRIVAT SÖKNING. VI SPARAR INGEN DATA OM DITT TARGET.
                   </p>
                 </div>
               </div>

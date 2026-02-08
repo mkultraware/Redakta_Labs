@@ -57,14 +57,16 @@ Content-Type: application/json
 
 ### Lokal utveckling
 
+För smidig lokal testning, använd Cloudflares officiella test-keys. Dessa gör att Captcha-valideringen alltid godkänns utan att du behöver konfigurera en riktig site.
+
 Skapa `.env.local`:
 
 ```env
-NEXT_PUBLIC_TURNSTILE_SITE_KEY=your-site-key
-TURNSTILE_SECRET_KEY=your-secret-key
+NEXT_PUBLIC_TURNSTILE_SITE_KEY=1x00000000000000000000AA
+TURNSTILE_SECRET_KEY=1x0000000000000000000000000000000AA
 ```
 
-**OBS**: Utan dessa variabler fungerar appen lokalt men utan captcha-skydd.
+**OBS**: Backend-tjänsterna kräver dessa variabler för att validera anrop lokalt.
 
 ## 📁 Projektstruktur
 
