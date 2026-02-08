@@ -110,11 +110,11 @@ export default function Home() {
     <div className="min-h-screen flex flex-col selection:bg-blue-100">
       <Header />
 
-      <main className="flex-1 px-6 py-24 lg:py-40">
+      <main className="flex-1 px-4 sm:px-6 py-20 sm:py-24 lg:py-40">
         <div className="max-w-4xl mx-auto space-y-32">
           {/* Hero Section */}
-          <section className="animate-in fade-in duration-1000 bg-grid-subtle -mx-6 px-6 py-12 rounded-3xl">
-            <div className="card-premium p-6 md:p-20 text-center space-y-10 glass border-slate-100/50">
+          <section className="animate-in fade-in duration-1000 bg-grid-subtle -mx-4 sm:-mx-6 px-4 sm:px-6 py-8 sm:py-12 rounded-3xl">
+            <div className="card-premium p-5 sm:p-6 md:p-20 text-center space-y-10 glass border-slate-100/50">
               <div className="inline-flex items-center gap-3 px-4 py-1.5 rounded-full bg-slate-50 border border-slate-100 text-[11px] font-bold uppercase tracking-[0.2em] text-slate-400 font-mono">
                 <span className="relative flex h-2 w-2">
                   <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-300 opacity-75"></span>
@@ -134,11 +134,11 @@ export default function Home() {
                     priority
                   />
                 </div>
-                <h1 className="text-4xl md:text-7xl font-black tracking-tighter text-slate-900 uppercase font-mono">
+                <h1 className="text-3xl sm:text-4xl md:text-7xl leading-[0.95] font-black tracking-tight md:tracking-tighter text-slate-900 uppercase font-mono">
                   SÄKRA DIN <br />
-                  <span className="gradient-text-subtle">DOMÄNIDENTITET.</span>
+                  <span className="gradient-text-subtle [overflow-wrap:anywhere]">DOMÄNIDENTITET.</span>
                 </h1>
-                <p className="max-w-2xl mx-auto text-xl text-slate-500 font-medium leading-relaxed">
+                <p className="max-w-2xl mx-auto text-base sm:text-lg md:text-xl text-slate-500 font-medium leading-relaxed">
                   Vi belyser indikativa signaler och potentiella risker i din domäns infrastruktur.
                   Passiv OSINT-analys som belyser behovet av djuplodande säkerhetsgranskning.
                 </p>
@@ -201,7 +201,7 @@ export default function Home() {
               <div className="space-y-16">
                 <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 pb-12 border-b border-slate-100">
                   <div className="space-y-2">
-                    <h2 className="text-4xl font-black tracking-tight text-slate-900 uppercase font-mono">
+                    <h2 className="text-2xl sm:text-3xl md:text-4xl font-black tracking-tight text-slate-900 uppercase font-mono break-all">
                       DOMÄN: {report.domain}
                     </h2>
                     <p className="text-[11px] font-bold text-slate-300 uppercase tracking-[0.2em]">
@@ -340,13 +340,13 @@ export default function Home() {
                 </div>
 
                 {/* Bottom CTA */}
-                <div className="card-premium p-8 md:p-24 text-center space-y-12 glass mt-20 overflow-hidden relative rounded-[2rem] md:rounded-[3rem]">
+                <div className="card-premium p-6 sm:p-8 md:p-24 text-center space-y-8 sm:space-y-12 glass mt-20 overflow-hidden relative rounded-[2rem] md:rounded-[3rem]">
                   <div className="absolute top-0 left-0 w-full h-1.5 bg-linear-to-r from-blue-100 via-emerald-100 to-orange-100 opacity-50" />
                   <div className="space-y-4 relative z-10">
-                    <h2 className="text-4xl font-black tracking-tight text-slate-900 uppercase">
+                    <h2 className="text-2xl sm:text-3xl md:text-4xl font-black tracking-tight text-slate-900 uppercase">
                       Lås upp full sårbarhetsanalys
                     </h2>
-                    <p className="text-slate-400 max-w-lg mx-auto font-medium text-lg">
+                    <p className="text-slate-400 max-w-lg mx-auto font-medium text-base sm:text-lg">
                       Ytlig analys indikerar risker men inte fullständig omfattning.
                       Kontakta Sekura för professionell säkerhetsrådgivning.
                     </p>
@@ -369,7 +369,7 @@ export default function Home() {
           <section id="varfor" className="scroll-mt-32 space-y-16 animate-in fade-in slide-in-from-bottom-8 duration-1000">
             <div className="grid md:grid-cols-2 gap-20 items-center">
               <div className="space-y-8">
-                <h2 className="text-4xl md:text-5xl font-black tracking-tighter text-slate-900 uppercase font-mono leading-none">
+                <h2 className="text-3xl sm:text-4xl md:text-5xl font-black tracking-tight md:tracking-tighter text-slate-900 uppercase font-mono leading-[0.95]">
                   Cyberbrottslighet <br />
                   <span className="text-rose-500">Diskriminerar Inte.</span>
                 </h2>
@@ -432,6 +432,31 @@ export default function Home() {
               ))}
             </div>
           )}
+
+          <section className="pt-20">
+            <div className="card-premium p-6 sm:p-8 md:p-10 glass border-slate-100/50">
+              <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-6">
+                <div className="space-y-3 max-w-3xl">
+                  <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-slate-400 font-mono">
+                    Ny funktion
+                  </p>
+                  <h3 className="text-2xl sm:text-3xl font-black tracking-tight text-slate-900 uppercase font-mono">
+                    Internetprognos för Sverige
+                  </h3>
+                  <p className="text-sm sm:text-base text-slate-500 font-medium leading-relaxed">
+                    Se en snabb och enkel lägesbild av internetturbulens i Sverige, baserad på öppna BGP-data i realtid.
+                    Perfekt för att förstå om läget är lugnt, blåsigt eller stormigt just nu.
+                  </p>
+                </div>
+                <a
+                  href="/internet-weather"
+                  className="btn-apple px-7 py-3.5 shadow-sm whitespace-nowrap text-sm sm:text-base uppercase tracking-[0.15em]"
+                >
+                  Öppna Internetprognos
+                </a>
+              </div>
+            </div>
+          </section>
         </div>
       </main>
 
@@ -439,3 +464,4 @@ export default function Home() {
     </div>
   );
 }
+
