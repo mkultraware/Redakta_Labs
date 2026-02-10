@@ -7,17 +7,30 @@ import Footer from "@/components/Footer";
 import DomainInput from "@/components/DomainInput";
 import VerdictCard from "@/components/VerdictCard";
 import SkeletonLoader from "@/components/SkeletonLoader";
+import LightModePreviewCard from "@/components/LightModePreviewCard";
 
 interface ScanResult {
   domain: string;
   timestamp: string;
   overallVerdict: "secure" | "attention" | "risk";
-  emailSecurity: { verdict: string; severity: string; riskLevel: number };
-  blacklist: { verdict: string; severity: string; listedCount: number };
-  typosquat: { verdict: string; severity: string; count: number };
-  dnsArmor: { verdict: string; severity: string; riskLevel: number };
-  shadowInfra: { verdict: string; severity: string; count: number };
-  history: { verdict: string; severity: string; count: number };
+  pressureBand: "low" | "medium" | "high";
+  reportClassified: boolean;
+  emailSecurity: PublicSignal;
+  blacklist: PublicSignal;
+  typosquat: PublicSignal;
+  dnsArmor: PublicSignal;
+  shadowInfra: PublicSignal;
+  history: PublicSignal;
+  liveThreat: PublicSignal;
+  exposedServices: PublicSignal;
+  exploitedRisk: PublicSignal;
+}
+
+interface PublicSignal {
+  verdict: "green" | "amber" | "red" | "gray";
+  severity: "success" | "warning" | "error" | "neutral";
+  teaser: string;
+  confidence: "high" | "medium" | "low";
 }
 
 export default function Home() {
@@ -42,15 +55,15 @@ export default function Home() {
     setReport(null);
     setTerminalLines([]);
 
-    // Artificial terminal sequence
+    // Loading sequence for perceived progress while backend checks run
     const sequence = [
-      `> INITIALIZING PASSIVE_PROBE...`,
-      `> TARGET: ${domain}`,
-      `> MODE: STATELESS / NON-INTRUSIVE`,
-      `> BYPASSING ACTIVE FIREWALL CHECKS... [SKIPPED]`,
-      `> BYPASSING VULNERABILITY INJECTION... [SKIPPED]`,
-      `> FETCHING PUBLIC HEADERS... DONE.`,
-      `> RENDER_RESULTS(SURFACE_ONLY);`
+      `> Startar passiv ytanalys`,
+      `> Måldomän registrerad: ${domain}`,
+      `> Verifierar förfrågan och sessionsskydd`,
+      `> Hämtar DNS- och ryktessignaler`,
+      `> Korrelerar öppna hotflöden`,
+      `> Klassificerar förhandsrapport`,
+      `> Resultat klart för visning`
     ];
 
     for (let i = 0; i < sequence.length; i++) {
@@ -84,49 +97,14 @@ export default function Home() {
     }
   };
 
-  const getVerdictLabel = (verdict: string, _type: string) => {
-    if (verdict === "protected" || verdict === "clean" || verdict === "safe" || verdict === "hardened" || verdict === "stable" || verdict === "minimal") return "KONTROLL OK";
-    if (verdict === "partial" || verdict === "risk_detected" || verdict === "monitored" || verdict === "visible") return "OSÄKER SIGNAL";
-    if (verdict === "not_protected" || verdict === "listed" || verdict === "high_exposure" || verdict === "deep_history" || verdict === "missing") return "INDIKERAD RISK";
+  const getVerdictLabel = (verdict: PublicSignal["verdict"]) => {
+    if (verdict === "green") return "KONTROLL OK";
+    if (verdict === "amber") return "OSÄKER SIGNAL";
+    if (verdict === "red") return "INDIKERAD RISK";
     return "ANALYS KRÄVS";
   };
 
-  const getVerdictType = (severity: string): "success" | "warning" | "error" | "neutral" => {
-    if (severity === "success") return "success";
-    if (severity === "warning") return "warning";
-    if (severity === "critical") return "error";
-    return "neutral";
-  };
-
-  const getObfuscatedMessage = (type: string, verdict: string, count?: number) => {
-    if (type === "email") {
-      if (verdict === "protected") return "Integritet bekräftad via passiv kontroll.";
-      if (verdict === "partial") return "Instabilitet i autentiseringen upptäckt.";
-      if (verdict === "not_protected") return "Kritiska brister i identitetslagret bekräftade.";
-      return "Identitetslagret dolt eller ej aktivt.";
-    }
-    if (type === "blacklist") {
-      if (verdict === "clean") return "Inga hotspots identifierade via publika index.";
-      return "Negativa signaler hittade i ryktestabeller.";
-    }
-    if (type === "typosquat") {
-      if (verdict === "safe") return "No public DNS matches found in surface-zones.";
-      return "Phishing-vektorer bekräftade via certifikatindex.";
-    }
-    if (type === "dnsArmor") {
-      if (verdict === "hardened") return "Modern armering (CAA) detekterad på domänen.";
-      return "Domänen saknar moderna spärrar mot resurs-kapning.";
-    }
-    if (type === "shadowInfra") {
-      if (verdict === "stable") return `Minimal exponering (${count || 0} identifierare).`;
-      return `Hittade ${count || 0} noder i CT-loggar. Potentiellt oskyddade dörrar.`;
-    }
-    if (type === "history") {
-      if (verdict === "minimal") return "Minimalt avtryck i historiska arkiv.";
-      return `Hittade ${count || 0} noder i arkiven. Gamla sårbarheter kan finnas kvar.`;
-    }
-    return "";
-  };
+  const getVerdictType = (severity: PublicSignal["severity"]): "success" | "warning" | "error" | "neutral" => severity;
 
   return (
     <div className="min-h-screen flex flex-col selection:bg-slate-200">
@@ -135,41 +113,68 @@ export default function Home() {
       <main className="flex-1 px-3 sm:px-6 py-12 lg:py-32 overflow-x-hidden">
         <div className="max-w-5xl mx-auto">
           {/* Tactical Header / Console Layout */}
-          <section className="animate-in fade-in duration-700 bg-grid-subtle py-8 rounded-none border-b border-slate-300">
-            <div className="card-premium p-5 md:p-16 text-left relative overflow-hidden">
-              {/* Mechanical Stamp/Lens Overlay */}
-              <div className="absolute top-4 right-4 opacity-10 pointer-events-none">
-                <Image
-                  src="/sekura.svg"
-                  alt="Sekura stamp"
-                  width={140}
-                  height={140}
-                  className="grayscale rotate-12"
-                />
-              </div>
-
-              <div className="inline-flex items-center gap-2 mb-8 font-mono text-[10px] font-bold uppercase tracking-widest text-slate-500">
-                <span className="h-1.5 w-1.5 bg-blue-500 block"></span>
-                REDAKTA LABS // ANALYS
-              </div>
-
-              <div className="grid lg:grid-cols-[1fr,300px] gap-12 items-center">
-                <div className="space-y-8">
-                  <h1 className="text-3xl sm:text-4xl md:text-6xl font-black tracking-tighter text-slate-900 uppercase leading-[0.85] font-mono break-words">
-                    SÄKRA DIN <br />
-                    <span className="text-blue-600">DOMÄNHÄLSA.</span>
-                  </h1>
-                  <p className="max-w-xl text-base sm:text-lg text-slate-500 font-medium leading-tight border-l-2 border-slate-200 pl-4 sm:pl-6">
-                    Identifierar indikativa signaler och potentiella risker via publika datakällor.
+          <section className="animate-in fade-in duration-700 py-8 rounded-none border-b border-slate-300">
+            <div className="card-premium p-5 sm:p-8 md:p-12 text-left relative overflow-hidden">
+              <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_300px] lg:items-start">
+                <div className="space-y-6">
+                  <h1 className="font-tech text-3xl sm:text-4xl md:text-5xl font-black tracking-[-0.03em] text-slate-900 leading-[1.02] break-words">
+                    Passiv domänanalys för svenska verksamheter.
                     <br />
-                    <span className="text-xs uppercase font-mono text-slate-400 mt-2 block">STATUS: YTANALYS</span>
+                    <span className="text-blue-600">Förhandsrapport på under 30 sekunder.</span>
+                  </h1>
+                  <p className="font-tech max-w-2xl text-base sm:text-lg text-slate-600 font-medium leading-snug border-l-2 border-slate-200 pl-4 sm:pl-6">
+                    Du får en operativ riskradar baserad på öppna signaler i realtid.
+                    Förhandsvyn är byggd för snabba beslut, medan tekniska verifieringar säkras i nästa analyssteg.
                   </p>
-                  <div className="pt-4">
+
+                  <div className="flex flex-wrap gap-2 text-[10px] font-bold uppercase tracking-widest font-mono">
+                    <span className="px-3 py-1 border border-slate-200 text-slate-600 bg-white">Status: Ytanalys</span>
+                    <span className="px-3 py-1 border border-slate-200 text-slate-600 bg-white">Publika datakällor</span>
+                    <span className="px-3 py-1 border border-slate-200 text-slate-600 bg-white">Ingen aktiv scanning</span>
+                  </div>
+
+                  <div className="pt-2">
                     <DomainInput onSubmit={handleSubmit} isLoading={isPreLoading || isLoading} />
                   </div>
                 </div>
 
-                <div>{/* Spacing for layout balance */}</div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-1 gap-3">
+                  <div className="border border-slate-200 bg-white px-4 py-3 space-y-1">
+                    <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400 font-mono">Analystyp</p>
+                    <p className="text-xs sm:text-sm font-bold text-slate-800 uppercase font-mono">Passiv yta</p>
+                  </div>
+                  <div className="border border-slate-200 bg-white px-4 py-3 space-y-1">
+                    <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400 font-mono">Databredd</p>
+                    <p className="text-xs sm:text-sm font-bold text-slate-800 uppercase font-mono">DNS + OSINT</p>
+                  </div>
+                  <div className="border border-slate-200 bg-white px-4 py-3 space-y-1">
+                    <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400 font-mono">Leverans</p>
+                    <p className="text-xs sm:text-sm font-bold text-slate-800 uppercase font-mono">Klassificerad förhandsvy</p>
+                  </div>
+
+                  <a
+                    href="https://www.sekura.se"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="block border border-slate-900 bg-white px-4 py-3 space-y-2 shadow-[3px_3px_0px_0px_rgba(15,23,42,0.18)] transition-colors hover:bg-slate-50"
+                  >
+                    <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500 font-mono">Powered by</p>
+                    <div className="flex items-center justify-between gap-3">
+                      <Image
+                        src="/sekura.svg"
+                        alt="SEKURA.SE"
+                        width={92}
+                        height={28}
+                        className="h-7 w-auto opacity-90"
+                      />
+                      <span className="text-[11px] font-bold uppercase tracking-widest text-slate-800 font-mono">SEKURA.SE</span>
+                    </div>
+                  </a>
+
+                  <div className="sm:col-span-2 lg:col-span-1">
+                    <LightModePreviewCard />
+                  </div>
+                </div>
               </div>
             </div>
           </section>
@@ -184,7 +189,7 @@ export default function Home() {
                 <div className="terminal-cursor font-mono"></div>
               </div>
               <p className="text-center text-[10px] font-bold uppercase tracking-widest text-slate-400 font-mono">
-                Ladda ner Labs Core v2.4...
+                Sammanställer förhandsrapport...
               </p>
             </div>
           )}
@@ -250,62 +255,92 @@ export default function Home() {
 
                   <VerdictCard
                     title="IDENTITETSLAGER"
-                    verdict={getVerdictLabel(report.emailSecurity.verdict, "email")}
+                    verdict={getVerdictLabel(report.emailSecurity.verdict)}
                     verdictType={getVerdictType(report.emailSecurity.severity)}
                     icon={
                       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><rect width="20" height="16" x="2" y="4" rx="2" /><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7" /></svg>
                     }
-                    details={getObfuscatedMessage("email", report.emailSecurity.verdict)}
+                    details={report.emailSecurity.teaser}
                   />
 
                   <VerdictCard
                     title="RYKTE & RYKTBARHET"
-                    verdict={getVerdictLabel(report.blacklist.verdict, "blacklist")}
+                    verdict={getVerdictLabel(report.blacklist.verdict)}
                     verdictType={getVerdictType(report.blacklist.severity)}
                     icon={
                       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10" /><path d="m9 12 2 2 4-4" /></svg>
                     }
-                    details={getObfuscatedMessage("blacklist", report.blacklist.verdict)}
+                    details={report.blacklist.teaser}
                   />
 
                   <VerdictCard
-                    title="BRAND DEFLECTION"
-                    verdict={getVerdictLabel(report.typosquat.verdict, "typosquat")}
+                    title="VARUMÄRKESSKYDD"
+                    verdict={getVerdictLabel(report.typosquat.verdict)}
                     verdictType={getVerdictType(report.typosquat.severity)}
                     icon={
                       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8" /><path d="m21 21-4.3-4.3" /></svg>
                     }
-                    details={getObfuscatedMessage("typosquat", report.typosquat.verdict)}
+                    details={report.typosquat.teaser}
                   />
 
                   <VerdictCard
-                    title="DNS ARMOR"
-                    verdict={getVerdictLabel(report.dnsArmor.verdict, "dnsArmor")}
+                    title="DNS-SKYDD"
+                    verdict={getVerdictLabel(report.dnsArmor.verdict)}
                     verdictType={getVerdictType(report.dnsArmor.severity)}
                     icon={
                       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10" /><path d="m12 8 4 4-4 4" /><path d="M8 12h8" /></svg>
                     }
-                    details={getObfuscatedMessage("dnsArmor", report.dnsArmor.verdict)}
+                    details={report.dnsArmor.teaser}
                   />
 
                   <VerdictCard
-                    title="SHADOW INFRASTRUCTURE"
-                    verdict={getVerdictLabel(report.shadowInfra.verdict, "shadowInfra")}
+                    title="SKUGGINFRASTRUKTUR"
+                    verdict={getVerdictLabel(report.shadowInfra.verdict)}
                     verdictType={getVerdictType(report.shadowInfra.severity)}
                     icon={
                       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M21 12V7H5a2 2 0 0 1 0-4h14v4" /><path d="M3 5v14a2 2 0 0 0 2 2h16v-5" /><path d="M18 12a2 2 0 0 0 0 4h4v-4Z" /></svg>
                     }
-                    details={getObfuscatedMessage("shadowInfra", report.shadowInfra.verdict, report.shadowInfra.count)}
+                    details={report.shadowInfra.teaser}
                   />
 
                   <VerdictCard
-                    title="GHOST FOOTPRINT"
-                    verdict={getVerdictLabel(report.history.verdict, "history")}
+                    title="HISTORISKT AVTRYCK"
+                    verdict={getVerdictLabel(report.history.verdict)}
                     verdictType={getVerdictType(report.history.severity)}
                     icon={
                       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10" /><path d="M12 6v6l4 2" /></svg>
                     }
-                    details={getObfuscatedMessage("history", report.history.verdict, report.history.count)}
+                    details={report.history.teaser}
+                  />
+
+                  <VerdictCard
+                    title="LIVE HOTINTEL"
+                    verdict={getVerdictLabel(report.liveThreat.verdict)}
+                    verdictType={getVerdictType(report.liveThreat.severity)}
+                    icon={
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2v20" /><path d="m2 12 20 0" /><path d="m5 5 14 14" /><path d="m19 5-14 14" /></svg>
+                    }
+                    details={report.liveThreat.teaser}
+                  />
+
+                  <VerdictCard
+                    title="EXPONERADE TJÄNSTER"
+                    verdict={getVerdictLabel(report.exposedServices.verdict)}
+                    verdictType={getVerdictType(report.exposedServices.severity)}
+                    icon={
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><rect width="20" height="8" x="2" y="3" rx="2" /><rect width="20" height="8" x="2" y="13" rx="2" /><path d="M6 7h.01" /><path d="M6 17h.01" /></svg>
+                    }
+                    details={report.exposedServices.teaser}
+                  />
+
+                  <VerdictCard
+                    title="EXPLOATERINGSRISK"
+                    verdict={getVerdictLabel(report.exploitedRisk.verdict)}
+                    verdictType={getVerdictType(report.exploitedRisk.severity)}
+                    icon={
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10" /><path d="m9 9 6 6" /><path d="m15 9-6 6" /></svg>
+                    }
+                    details={report.exploitedRisk.teaser}
                   />
                 </div>
 
@@ -327,7 +362,7 @@ export default function Home() {
                       icon={
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><rect width="18" height="11" x="3" y="11" rx="2" ry="2" /><path d="M7 11V7a5 5 0 0 1 10 0v4" /></svg>
                       }
-                      details="Aktiv sondering efter öppna bakdörrar kräver djuppnivå. Hacker-skript gör detta 24/7. Vet du vad de ser?"
+                      details="Ej körd i gratisläge. Aktiv sondering startas först i auktoriserad djupprovning."
                     />
 
                     <VerdictCard
@@ -338,7 +373,7 @@ export default function Home() {
                       icon={
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="m12 14 4-4" /><path d="m3.34 19 8.66-8.66" /><path d="m20.66 19-8.66-8.66" /><circle cx="12" cy="10" r="2" /><circle cx="12" cy="21" r="2" /><circle cx="3" cy="21" r="2" /><circle cx="21" cy="21" r="2" /><circle cx="12" cy="2" r="2" /></svg>
                       }
-                      details="Identifiering av kända sårbarheter i din mjukvarustack. Kräver versions-analys via Sekura-core."
+                      details="Ej körd i gratisläge. Full CVE-korrelation kräver versionsfingerprinting och verifierad scope."
                     />
 
                     <VerdictCard
@@ -349,7 +384,7 @@ export default function Home() {
                       icon={
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10" /><path d="m12 8 4 4-4 4" /><path d="M8 12h8" /></svg>
                       }
-                      details="Djupkartering ser ALLT hackers ser. Boka audi för full insyn."
+                      details="Ej körd i gratisläge. Djupkartering av subdomäner aktiveras först i betald analys."
                     />
 
                     <VerdictCard
@@ -360,7 +395,7 @@ export default function Home() {
                       icon={
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10" /><circle cx="12" cy="12" r="3" /></svg>
                       }
-                      details="Verifiering av brandväggsskydd och bypass-vektorer. Kritisk för att stoppa automatiserade attacker."
+                      details="Ej körd i gratisläge. Bypass- och edge-analys kräver aktiv verifiering mot skyddslagret."
                     />
 
                     <VerdictCard
@@ -371,7 +406,7 @@ export default function Home() {
                       icon={
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="m21 21-4.3-4.3" /><path d="M11 8 7 12l4 4" /><path d="m13 8 4 4-4 4" /></svg>
                       }
-                      details="Simulerade attacker för att hitta dolda ingångar. Sekura utför dessa under kontrollerade former."
+                      details="Ej körd i gratisläge. Simulerade attacker startas aldrig utan avtalad auktorisering."
                     />
 
                     <VerdictCard
@@ -382,7 +417,7 @@ export default function Home() {
                       icon={
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" /><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" /></svg>
                       }
-                      details="API-läckage är den vanligaste orsaken till dataförlust. Kräver auktoriserad fullskalig analys."
+                      details="Ej körd i gratisläge. API-granskning kräver autentiserad testprofil och manuell validering."
                     />
                   </div>
                 </div>
@@ -396,7 +431,7 @@ export default function Home() {
                       <span className="text-blue-600">REKOMMENDERAS.</span>
                     </h2>
                     <p className="max-w-xl mx-auto text-lg text-slate-500 font-mono font-bold leading-tight uppercase border-y border-slate-200 py-4">
-                      Identifierade riskvektorer kräver auktoriserat djupprovning för fullständig mitigering.
+                      Du ser en klassificerad förhandsvy. Fulla indikatorer och åtgärdsplan lämnas endast i auktoriserad diagnos.
                     </p>
                   </div>
                   <div className="flex flex-col sm:flex-row items-center justify-center gap-6 pt-4">
@@ -517,4 +552,3 @@ export default function Home() {
     </div>
   );
 }
-

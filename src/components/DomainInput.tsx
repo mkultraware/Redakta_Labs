@@ -71,7 +71,7 @@ export default function DomainInput({ onSubmit, isLoading }: DomainInputProps) {
         }
 
         if (siteKey && !turnstileToken) {
-            setError("Verifiera captcha");
+            setError("Verifiera att du är människa");
             return;
         }
 
@@ -80,9 +80,18 @@ export default function DomainInput({ onSubmit, isLoading }: DomainInputProps) {
     };
 
     return (
-        <form onSubmit={handleSubmit} className="w-full max-w-2xl mx-auto space-y-6 text-center">
-            <div className="card-premium p-2 shadow-premium flex flex-col md:flex-row gap-2 rounded-2xl md:rounded-full">
+        <form onSubmit={handleSubmit} className="w-full max-w-2xl mx-auto px-1 sm:px-0 space-y-6 text-center">
+            <div className="text-left space-y-1.5 px-1">
+                <label htmlFor="domain-input" className="block text-[11px] font-bold uppercase tracking-widest text-slate-500 font-mono">
+                    Domän
+                </label>
+                <p className="text-xs text-slate-500 font-medium">
+                    Ange huvuddomän, till exempel <span className="font-mono">foretag.se</span>.
+                </p>
+            </div>
+            <div className="w-full max-w-full min-w-0 card-premium p-2 shadow-premium flex flex-col md:flex-row gap-2 rounded-2xl md:rounded-full">
                 <input
+                    id="domain-input"
                     type="text"
                     value={domain}
                     onChange={(e) => {
@@ -90,13 +99,13 @@ export default function DomainInput({ onSubmit, isLoading }: DomainInputProps) {
                         setError("");
                     }}
                     placeholder="exempel.se"
-                    className="flex-1 px-8 py-4 text-lg font-medium border-none focus:ring-0 rounded-full bg-transparent placeholder:text-zinc-300"
+                    className="w-full min-w-0 flex-1 px-5 sm:px-8 py-3.5 sm:py-4 text-base sm:text-lg font-medium border-none focus:ring-0 rounded-full bg-transparent placeholder:text-zinc-300"
                     disabled={isLoading}
                 />
                 <button
                     type="submit"
                     disabled={isLoading || (!!siteKey && !turnstileToken)}
-                    className="btn-apple px-8 py-3.5 shadow-sm whitespace-nowrap"
+                    className="w-full md:w-auto btn-apple px-6 sm:px-8 py-3.5 shadow-sm whitespace-nowrap justify-center"
                 >
                     {isLoading ? (
                         <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24">
@@ -105,7 +114,7 @@ export default function DomainInput({ onSubmit, isLoading }: DomainInputProps) {
                         </svg>
                     ) : (
                         <>
-                            Skanna domän
+                            Starta analys
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="w-4 h-4 ml-1 opacity-70">
                                 <path d="m22 2-7 20-4-9-9-4Z" />
                                 <path d="M22 2 11 13" />
@@ -116,7 +125,7 @@ export default function DomainInput({ onSubmit, isLoading }: DomainInputProps) {
             </div>
 
             {siteKey && (
-                <div className="flex justify-center opacity-70 scale-90 transition-opacity hover:opacity-100">
+                <div className="w-full overflow-x-hidden flex justify-center opacity-70 scale-90 transition-opacity hover:opacity-100">
                     <div ref={turnstileRef}></div>
                 </div>
             )}

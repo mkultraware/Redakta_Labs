@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
-import { Fira_Code, Outfit } from "next/font/google";
+import { Exo_2, Fira_Code, Outfit } from "next/font/google";
+import Script from "next/script";
+import CookieBanner from "@/components/CookieBanner";
 import "./globals.css";
 
 const firaCode = Fira_Code({
@@ -10,6 +12,11 @@ const firaCode = Fira_Code({
 const outfit = Outfit({
   subsets: ["latin"],
   variable: "--font-outfit",
+});
+
+const exo2 = Exo_2({
+  subsets: ["latin"],
+  variable: "--font-exo-2",
 });
 
 export const metadata: Metadata = {
@@ -36,10 +43,10 @@ export const metadata: Metadata = {
     siteName: "Redakta Labs by SEKURA.SE",
     images: [
       {
-        url: "/og-image.png",
+        url: "/opengraph-image",
         width: 1200,
         height: 630,
-        alt: "Redakta Labs - Passiv OSINT-analys för svenska organisationer - SEKURA.SE",
+        alt: "Redakta Labs - Passiv domänanalys och klassificerad förhandsvy",
       },
     ],
     locale: "sv_SE",
@@ -49,7 +56,7 @@ export const metadata: Metadata = {
     card: "summary_large_image",
     title: "Redakta Labs | Passiv OSINT-analys",
     description: "Öppna verktyg för att stärka cyberhygienen hos svenska organisationer. En SEKURA.SE produkt.",
-    images: ["/og-image.png"],
+    images: ["/opengraph-image"],
     creator: "@SEKURAsverige",
   },
   robots: {
@@ -65,13 +72,13 @@ export const metadata: Metadata = {
   },
 };
 
-import CookieBanner from "@/components/CookieBanner";
-
 export default function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const gtmId = process.env.NEXT_PUBLIC_GTM_ID?.trim() || "GTM-KBVNSQSG";
+
   const jsonLd = {
     "@context": "https://schema.org",
     "@type": "WebApplication",
@@ -96,15 +103,6 @@ export default function RootLayout({
     <html lang="sv">
       <head>
         <script
-          dangerouslySetInnerHTML={{
-            __html: `(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
-            new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
-            j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
-            'https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);
-            })(window,document,'script','dataLayer','GTM-KBVNSQSG');`,
-          }}
-        />
-        <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
         />
@@ -112,15 +110,24 @@ export default function RootLayout({
         <meta name="geo.placename" content="Sweden" />
         <meta name="google-site-verification" content="GGQlsiVo37oVMnGZL7Ol8WXeeFQ9VIOYpi9QF-7PoQA" />
       </head>
-      <body className={`${outfit.variable} ${firaCode.variable} font-sans antialiased`}>
-        <noscript>
-          <iframe
-            src="https://www.googletagmanager.com/ns.html?id=GTM-KBVNSQSG"
-            height="0"
-            width="0"
-            style={{ display: "none", visibility: "hidden" }}
-          />
-        </noscript>
+      <body className={`${outfit.variable} ${firaCode.variable} ${exo2.variable} font-sans antialiased`}>
+        {gtmId ? (
+          <>
+            <Script
+              id="gtm-loader"
+              src={`https://www.googletagmanager.com/gtm.js?id=${encodeURIComponent(gtmId)}`}
+              strategy="afterInteractive"
+            />
+            <noscript>
+              <iframe
+                src={`https://www.googletagmanager.com/ns.html?id=${encodeURIComponent(gtmId)}`}
+                height="0"
+                width="0"
+                style={{ display: "none", visibility: "hidden" }}
+              />
+            </noscript>
+          </>
+        ) : null}
         {children}
         <CookieBanner />
       </body>
