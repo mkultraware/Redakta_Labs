@@ -7,7 +7,6 @@ import Footer from "@/components/Footer";
 import DomainInput from "@/components/DomainInput";
 import VerdictCard from "@/components/VerdictCard";
 import SkeletonLoader from "@/components/SkeletonLoader";
-import LightModePreviewCard from "@/components/LightModePreviewCard";
 
 interface ScanResult {
   domain: string;
@@ -170,10 +169,6 @@ export default function Home() {
                       <span className="text-[11px] font-bold uppercase tracking-widest text-slate-800 font-mono">SEKURA.SE</span>
                     </div>
                   </a>
-
-                  <div className="sm:col-span-2 lg:col-span-1">
-                    <LightModePreviewCard />
-                  </div>
                 </div>
               </div>
             </div>
